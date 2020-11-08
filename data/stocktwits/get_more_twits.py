@@ -146,7 +146,6 @@ active_proxy = None
 
 while True:
     seq = list(range(curr_ticker_idx, len(sp_500_tickers)))
-    random.shuffle(seq)
     for ticker_idx in seq:
         curr_ticker_idx = ticker_idx
         ticker = sp_500_tickers[ticker_idx]
