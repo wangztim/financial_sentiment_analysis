@@ -126,13 +126,9 @@ def fetchTwits(endpoint, direction, twit_id, proxy=None):
         raise requests.exceptions.HTTPError("Request timed out :(")
 
     if (res.status_code == 429 or res.status_code == 403):
-        if res.status_code == 403:
-            print(res)
         raise requests.exceptions.ConnectionError(
-            "ENGAGE IN A NEW PROXY AHAHAHAHA")
-
-    if (res.status_code != 200):
-        print(res)
+            "Rate limit exhausted. Must switch to a proxy.")
+    elif (res.status_code != 200):
         raise requests.exceptions.HTTPError("API call unsuccessful. Code: " +
                                             str(res.status_code))
     data = res.json()
@@ -145,7 +141,7 @@ def fetchTwits(endpoint, direction, twit_id, proxy=None):
 
 
 curr_ticker_idx = 0
-collector = proxyscrape.create_collector('us-proxy', 'http')
+collector = proxyscrape.create_collector('ssl-proxy', 'https')
 active_proxy = None
 
 while True:
@@ -159,7 +155,7 @@ while True:
             fetchAndWriteTwits(ticker, active_proxy)  # Is this legal?
             if (curr_ticker_idx == len(sp_500_tickers) - 1):
                 curr_ticker_idx = 0
-        except Exception as er:
+        except requests.exceptions.ConnectionError as er:
             print('switching proxies because ' + str(er))
             proxy = collector.get_proxy({'country': 'united states'})
             proxy_url = f"{proxy.host}:{proxy.port}"
@@ -168,3 +164,6 @@ while True:
                 "http": proxy_url,
                 "https": proxy_url
             }
+        except requests.exceptions.HTTPError as er:
+            print('unable to fetch information because of error: ' + str(er))
+            continue
