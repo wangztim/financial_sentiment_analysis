@@ -140,20 +140,17 @@ def fetchTwits(endpoint, direction, twit_id, proxy=None):
     return twits
 
 
-curr_ticker_idx = 0
-collector = proxyscrape.create_collector('ssl-proxy', 'https')
+collector = proxyscrape.create_collector('us-proxy', 'https')
 active_proxy = None
 
 while True:
-    seq = list(range(curr_ticker_idx, len(sp_500_tickers)))
+    seq = list(range(0, len(sp_500_tickers)))
+    random.shuffle(seq)
     for ticker_idx in seq:
-        curr_ticker_idx = ticker_idx
         ticker = sp_500_tickers[ticker_idx]
         try:
             print(ticker)
             fetchAndWriteTwits(ticker, active_proxy)  # Is this legal?
-            if (curr_ticker_idx == len(sp_500_tickers) - 1):
-                curr_ticker_idx = 0
         except requests.exceptions.ConnectionError as er:
             print('switching proxies because ' + str(er))
             proxy = collector.get_proxy({'country': 'united states'})
