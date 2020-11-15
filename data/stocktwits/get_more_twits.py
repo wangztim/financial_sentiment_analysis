@@ -15,7 +15,7 @@ sp_500_tickers = open(os.path.dirname(
 FORWARD = "FORWARD"
 BACKWARD = "BACKWARD"
 
-desired_dir = FORWARD
+desired_dir = BACKWARD
 
 
 def fetchAndWriteTwits(ticker, proxy=None):
@@ -154,22 +154,23 @@ def addExhaustedStock(name):
         return f.write(name + "\n")
 
 
-collector = proxyscrape.create_collector('us-proxy', 'https')
+collector = proxyscrape.create_collector('free-proxy-list', 'https')
+
 active_proxy = None
 
 while True:
-    exhausted_stocks = getExhaustedStocks()
-    good_tickers = [t for t in sp_500_tickers if t not in exhausted_stocks]
-    seq = list(range(0, len(good_tickers)))
+    # exhausted_stocks = getExhaustedStocks()
+    # good_tickers = [t for t in sp_500_tickers if t not in exhausted_stocks]
+    seq = list(range(0, len(sp_500_tickers)))
     random.shuffle(seq)
     for ticker_idx in seq:
-        ticker = good_tickers[ticker_idx]
+        ticker = sp_500_tickers[ticker_idx]
         try:
             print(ticker)
             fetchAndWriteTwits(ticker, active_proxy)  # Is this legal?
         except requests.exceptions.ConnectionError as er:
             print('switching proxies because ' + str(er))
-            proxy = collector.get_proxy({'country': 'united states'})
+            proxy = collector.get_proxy()
             proxy_url = f"{proxy.host}:{proxy.port}"
             active_proxy = {
                 "http": proxy_url,
