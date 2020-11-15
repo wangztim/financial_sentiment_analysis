@@ -6,7 +6,6 @@ import pprint
 from datetime import datetime
 from dateutil import parser
 import random
-import proxyscrape
 
 sp_500_tickers = open(os.path.dirname(
     os.path.abspath(__file__)) + "/igm.txt", "r").read().splitlines()
@@ -154,10 +153,6 @@ def addExhaustedStock(name):
         return f.write(name + "\n")
 
 
-collector = proxyscrape.create_collector('free-proxy-list', 'https')
-
-active_proxy = None
-
 while True:
     # exhausted_stocks = getExhaustedStocks()
     # good_tickers = [t for t in sp_500_tickers if t not in exhausted_stocks]
@@ -167,15 +162,12 @@ while True:
         ticker = sp_500_tickers[ticker_idx]
         try:
             print(ticker)
-            fetchAndWriteTwits(ticker, active_proxy)  # Is this legal?
+            fetchAndWriteTwits(ticker)  # Is this legal?
         except requests.exceptions.ConnectionError as er:
-            print('switching proxies because ' + str(er))
-            proxy = collector.get_proxy()
-            proxy_url = f"{proxy.host}:{proxy.port}"
-            active_proxy = {
-                "http": proxy_url,
-                "https": proxy_url
-            }
+            print('engage in hehe xd mode')
+            os.system("killall ProtonVPN")
+            os.system("open -a ProtonVPN")
+            time.sleep(10)
         except requests.exceptions.HTTPError as er:
             print('unable to fetch information because of error: ' + str(er))
             continue
