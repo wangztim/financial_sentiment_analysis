@@ -15,7 +15,7 @@ sp_500_tickers = open(os.path.dirname(
 FORWARD = "FORWARD"
 BACKWARD = "BACKWARD"
 
-desired_dir = BACKWARD
+desired_dir = FORWARD
 
 
 def fetchAndWriteTwits(ticker, proxy=None):
@@ -140,11 +140,27 @@ def fetchTwits(endpoint, direction, twit_id, proxy=None):
     return twits
 
 
+def getExhaustedStocks():
+    exh_path = os.path.dirname(
+        os.path.abspath(__file__)) + "/exhausted_stocks.txt"
+    with open(exh_path, "r") as f:
+        return f.read().splitlines()
+
+
+def addExhaustedStock(name):
+    exh_path = os.path.dirname(
+        os.path.abspath(__file__)) + "/exhausted_stocks.txt"
+    with open(exh_path, "a") as f:
+        return f.write(name + "\n")
+
+
 collector = proxyscrape.create_collector('us-proxy', 'https')
 active_proxy = None
 
 while True:
-    seq = list(range(0, len(sp_500_tickers)))
+    exhausted_stocks = getExhaustedStocks()
+    good_tickers = [t for t in sp_500_tickers if t not in exhausted_stocks]
+    seq = list(range(0, len(good_tickers)))
     random.shuffle(seq)
     for ticker_idx in seq:
         ticker = sp_500_tickers[ticker_idx]
@@ -155,11 +171,14 @@ while True:
             print('switching proxies because ' + str(er))
             proxy = collector.get_proxy({'country': 'united states'})
             proxy_url = f"{proxy.host}:{proxy.port}"
-            print(proxy_url)
             active_proxy = {
                 "http": proxy_url,
                 "https": proxy_url
             }
         except requests.exceptions.HTTPError as er:
             print('unable to fetch information because of error: ' + str(er))
+            continue
+        except RuntimeError as er:
+            print("Skipping because " + str(er))
+            addExhaustedStock(ticker)
             continue
