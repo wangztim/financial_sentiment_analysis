@@ -163,7 +163,7 @@ while True:
     seq = list(range(0, len(good_tickers)))
     random.shuffle(seq)
     for ticker_idx in seq:
-        ticker = sp_500_tickers[ticker_idx]
+        ticker = good_tickers[ticker_idx]
         try:
             print(ticker)
             fetchAndWriteTwits(ticker, active_proxy)  # Is this legal?
