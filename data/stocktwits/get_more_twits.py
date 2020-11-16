@@ -5,6 +5,7 @@ import os
 import pprint
 from datetime import datetime
 from dateutil import parser
+from subprocess import call
 import random
 
 sp_500_tickers = open(os.path.dirname(
@@ -17,7 +18,7 @@ BACKWARD = "BACKWARD"
 desired_dir = BACKWARD
 
 
-def fetchAndWriteTwits(ticker, proxy=None):
+def fetchAndWriteTwits(ticker):
     endpoint = "https://api.stocktwits.com/api/2/streams/symbol/" + ticker + ".json"
     ticker_dir = os.path.dirname(
         os.path.abspath(__file__)) + "/tickers/" + ticker
@@ -42,7 +43,7 @@ def fetchAndWriteTwits(ticker, proxy=None):
             marker_datetime, marker_id = initializeMarkerDatetimeAndId(
                 desired_dir, twits_csv)
 
-        twits = fetchTwits(endpoint, desired_dir, marker_id, proxy)
+        twits = fetchTwits(endpoint, desired_dir, marker_id)
 
         for twit in twits:
             sentiment = twit.get('entities', {}).get(
@@ -110,7 +111,7 @@ def initializeMarkerDatetimeAndId(direction, twits_csv):
     return marker_datetime, marker_id
 
 
-def fetchTwits(endpoint, direction, twit_id, proxy=None):
+def fetchTwits(endpoint, direction, twit_id):
     params = {}
     if direction == BACKWARD:
         params['max'] = twit_id
@@ -120,7 +121,7 @@ def fetchTwits(endpoint, direction, twit_id, proxy=None):
     res = None
 
     try:
-        res = requests.get(endpoint, params=params, timeout=5, proxies=proxy)
+        res = requests.get(endpoint, params=params, timeout=5)
     except requests.exceptions.Timeout:
         raise requests.exceptions.HTTPError("Request timed out :(")
 
@@ -158,16 +159,27 @@ while True:
     # good_tickers = [t for t in sp_500_tickers if t not in exhausted_stocks]
     seq = list(range(0, len(sp_500_tickers)))
     random.shuffle(seq)
+
+    vpns = ["ProtonVPN", "Windscribe"]
+    vpn_idx = 0
+
     for ticker_idx in seq:
         ticker = sp_500_tickers[ticker_idx]
         try:
             print(ticker)
             fetchAndWriteTwits(ticker)  # Is this legal?
         except requests.exceptions.ConnectionError as er:
-            print('engage in hehe xd mode')
-            os.system("killall ProtonVPN")
-            os.system("open -a ProtonVPN")
+            print('restarting VPN process.')
+            for vpn in vpns:
+                call(["killall", vpn])
+            vpn_to_use = vpns[vpn_idx]
             time.sleep(10)
+            print("starting " + vpn_to_use)
+            call(["open", "-a", vpn_to_use])
+            time.sleep(10)
+            vpn_idx += 1
+            if vpn_idx >= len(vpns):
+                vpn_idx = 0
         except requests.exceptions.HTTPError as er:
             print('unable to fetch information because of error: ' + str(er))
             continue

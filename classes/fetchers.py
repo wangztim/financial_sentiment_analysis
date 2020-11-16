@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from message import Message, Sentiment
+from classes.message import Message, Sentiment
 from datetime import datetime
 from dateutil import parser
 import requests
@@ -12,7 +12,7 @@ class MessageFetcher(ABC):
         pass
 
     @abstractmethod
-    def __processFetched(self, message: {}) -> Message:
+    def processFetched(self, message: {}) -> Message:
         pass
 
 
@@ -24,7 +24,7 @@ class StocktwitsFetcher(MessageFetcher):
 
         if res.status_code == 200:
             messages = res.json()['messages']
-            return [self.__processFetched(m) for m in messages]
+            return [self.processFetched(m) for m in messages]
         elif (res.status_code == 429 or res.status_code == 403):
             raise requests.exceptions.ConnectionError(
                 "Rate limit exhausted. Must switch to a proxy.")
@@ -32,7 +32,7 @@ class StocktwitsFetcher(MessageFetcher):
             raise RuntimeError("API call unsuccessful. Code: " +
                                str(res.status_code))
 
-    def __processFetched(self, twit: {}) -> Message:
+    def processFetched(self, twit: {}) -> Message:
         sentiment = twit.get('entities', {}).get(
             'sentiment', {})
         sentiment_val = 0
@@ -55,7 +55,7 @@ class StocktwitsFetcher(MessageFetcher):
         tickers_in_body = list(filter(
             lambda symbol: symbol in body, all_symbols))
 
-        message = Message(body, twit['id'], created_date_time, Sentiment(sentiment_val), tickers_in_body, twit.get('likes', {}).get(
+        message = Message(body, twit['id'], created_date_time, tickers_in_body, Sentiment(sentiment_val), twit.get('likes', {}).get(
             'total', 0))
 
         return message
@@ -79,14 +79,14 @@ class TwitterFetcher(MessageFetcher):
 
         if res.status_code == 200:
             data = res.json()['data']
-            filtered_data = [self.__processFetched(d) for d in data if (d['lang']
-                                                                        == "en" and "$" in d['text'])]
+            filtered_data = [self.processFetched(d) for d in data if (d['lang']
+                                                                      == "en" and "$" in d['text'])]
             return filtered_data
         else:
             raise RuntimeError("API call unsuccessful. Code: " +
                                str(res.status_code))
 
-    def __processFetched(self, tweet: {}) -> Message:
+    def processFetched(self, tweet: {}) -> Message:
         likes = tweet.get('public_metrics', {}).get('like_count')
         created_date_time = parser.parse(tweet['created_at'])
 

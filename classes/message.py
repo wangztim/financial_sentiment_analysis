@@ -1,20 +1,20 @@
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import IntEnum
 
 
-class Sentiment(Enum):
+class Sentiment(IntEnum):
     NEUTRAL = 0
     BULLISH = 1
     BEARISH = -1
     UNDEFINED = -69
 
 
-@dataclass(frozen=True)
+@dataclass()
 class Message:
     body: str
     id: str
     created_at: datetime
-    sentiment: Sentiment = Sentiment.UNDEFINED
     symbols: [str]
+    sentiment: Sentiment = Sentiment.UNDEFINED
     likes: int = 0
