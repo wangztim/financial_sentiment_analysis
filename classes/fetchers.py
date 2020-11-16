@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 from classes.message import Message, Sentiment
-from datetime import datetime
 from dateutil import parser
 import requests
 import os
+import aiohttp
 
 
 class MessageFetcher(ABC):
     @abstractmethod
-    def fetchMessages(self, ticker, params=None, headers=None, proxies=None) -> [Message]:
+    def fetchMessages(self, ticker, params=None, headers=None) -> [Message]:
         pass
 
     @abstractmethod
@@ -17,26 +17,28 @@ class MessageFetcher(ABC):
 
 
 class StocktwitsFetcher(MessageFetcher):
-    def fetchMessages(self, ticker, params=None, headers=None, proxies=None) -> [Message]:
-        endpoint = "https://api.stocktwits.com/api/2/streams/symbol/" + ticker + ".json"
-        res = requests.get(endpoint, timeout=5, params=params,
-                           headers=headers, proxies=proxies)
-
-        if res.status_code == 200:
-            messages = res.json()['messages']
-            return [self.processFetched(m) for m in messages]
-        elif (res.status_code == 429 or res.status_code == 403):
-            raise requests.exceptions.ConnectionError(
-                "Rate limit exhausted. Must switch to a proxy.")
-        else:
-            raise RuntimeError("API call unsuccessful. Code: " +
-                               str(res.status_code))
+    async def fetchMessages(self, ticker, session: aiohttp.ClientSession,
+                            params=None, headers=None) -> [Message]:
+        endpoint = f'https://api.stocktwits.com/api/2/streams/symbol/{ticker}.json'
+        async with session.get(endpoint, params=params,
+                               headers=headers, timeout=5) as res:
+            status_code = res.status
+            if status_code == 200:
+                json = await res.json()
+                messages = json["messages"]
+                return [self.processFetched(m) for m in messages]
+            elif (status_code == 429 or status_code == 403):
+                raise requests.exceptions.ConnectionError(
+                    "Rate limit exhausted.")
+            else:
+                raise RuntimeError("API call unsuccessful. Code: " +
+                                   str(res.status_code))
 
     def processFetched(self, twit: {}) -> Message:
         sentiment = twit.get('entities', {}).get(
             'sentiment', {})
         sentiment_val = 0
-        if sentiment == None:
+        if sentiment is None:
             sentiment_val = -69
         elif (sentiment.get('basic') == "Bullish"):
             sentiment_val = 1
@@ -48,6 +50,7 @@ class StocktwitsFetcher(MessageFetcher):
         created_date_time = parser.parse(twit['created_at'])
 
         body = twit['body'].lower()
+        body = bytes(body, 'utf-8').decode('utf-8', 'ignore')
 
         all_symbols = list(
             map(lambda x: x['symbol'].lower(), twit['symbols']))
@@ -55,14 +58,17 @@ class StocktwitsFetcher(MessageFetcher):
         tickers_in_body = list(filter(
             lambda symbol: symbol in body, all_symbols))
 
-        message = Message(body, twit['id'], created_date_time, tickers_in_body, Sentiment(sentiment_val), twit.get('likes', {}).get(
-            'total', 0))
+        message = Message(body, twit['id'],
+                          created_date_time,
+                          tickers_in_body,
+                          Sentiment(sentiment_val),
+                          twit.get('likes', {}).get('total', 0))
 
         return message
 
 
 class TwitterFetcher(MessageFetcher):
-    def fetchMessages(self, ticker, params=None, headers=None, proxies=None) -> [Message]:
+    def fetchMessages(self, ticker, params=None, headers=None) -> [Message]:
         endpoint = "https://api.twitter.com/2/tweets/search/recent"
 
         bearer = os.environ['TWITTER_BEARER_TOKEN']
@@ -72,7 +78,8 @@ class TwitterFetcher(MessageFetcher):
 
         if not params:
             params = {"query": '"${}"'.format(ticker),
-                      "max_results": 100, "tweet.fields": "lang,created_at,public_metrics"}
+                      "max_results": 100,
+                      "tweet.fields": "lang,created_at,public_metrics"}
 
         res = requests.get(endpoint, headers=headers,
                            timeout=5, params=params)
