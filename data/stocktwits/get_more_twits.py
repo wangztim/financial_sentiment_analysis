@@ -5,7 +5,7 @@ import os
 import pprint
 from datetime import datetime
 from dateutil import parser
-from subprocess import call
+from subprocess import call, DEVNULL
 import random
 
 sp_500_tickers = open(os.path.dirname(
@@ -160,7 +160,7 @@ while True:
     seq = list(range(0, len(sp_500_tickers)))
     random.shuffle(seq)
 
-    vpns = ["ProtonVPN", "Windscribe"]
+    vpns = ["ProtonVPN", "Hotspot Shield"]
     vpn_idx = 0
 
     for ticker_idx in seq:
@@ -171,12 +171,13 @@ while True:
         except requests.exceptions.ConnectionError as er:
             print('restarting VPN process.')
             for vpn in vpns:
-                call(["killall", vpn])
+                call(["killall", vpn], stdout=DEVNULL,
+                     stderr=DEVNULL)
+            time.sleep(4)
             vpn_to_use = vpns[vpn_idx]
-            time.sleep(10)
             print("starting " + vpn_to_use)
             call(["open", "-a", vpn_to_use])
-            time.sleep(10)
+            time.sleep(16)
             vpn_idx += 1
             if vpn_idx >= len(vpns):
                 vpn_idx = 0
