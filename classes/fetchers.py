@@ -5,6 +5,13 @@ import requests
 import os
 import aiohttp
 
+from enum import Enum
+
+
+class Direction(Enum):
+    FORWARD = "FORWARD"
+    BACKWARD = "BACKWARD"
+
 
 class MessageFetcher(ABC):
     @abstractmethod
@@ -17,16 +24,26 @@ class MessageFetcher(ABC):
 
 
 class StocktwitsFetcher(MessageFetcher):
+    direction: Direction
+    marker_cache: dict
+
+    def __init__(self, direction):
+        self.direction = direction
+        self.marker_cache = {}
+
     async def fetchMessages(self, ticker, session: aiohttp.ClientSession,
                             params=None, headers=None) -> [Message]:
         endpoint = f'https://api.stocktwits.com/api/2/streams/symbol/{ticker}.json'
+        if params is None:
+            params = self.__initParams(ticker)
+
         async with session.get(endpoint, params=params,
                                headers=headers, timeout=5) as res:
             status_code = res.status
             if status_code == 200:
                 json = await res.json()
                 messages = json["messages"]
-                return [self.processFetched(m) for m in messages]
+                return [self.processMessage(m, ticker) for m in messages]
             elif (status_code == 429 or status_code == 403):
                 raise requests.exceptions.ConnectionError(
                     "Rate limit exhausted.")
@@ -34,7 +51,24 @@ class StocktwitsFetcher(MessageFetcher):
                 raise RuntimeError("API call unsuccessful. Code: " +
                                    str(res.status_code))
 
-    def processFetched(self, twit: {}) -> Message:
+    def __initParams(self, ticker):
+        params = {}
+        ticker_id = self.marker_cache[ticker]
+        if ticker_id is None:
+            return params
+        if self.direction == Direction.BACKWARD:
+            params['max'] = ticker_id
+        elif self.direction == Direction.FORWARD:
+            params['since'] = ticker_id
+        return params
+
+    def getTickerMarker(self, ticker: str):
+        return self.marker_cache[ticker]
+
+    def setTickerMarker(self, ticker: str, marker: str):
+        self.marker_cache[ticker] = marker
+
+    def processMessage(self, twit: {}, ticker: str) -> Message:
         sentiment = twit.get('entities', {}).get(
             'sentiment', {})
         sentiment_val = 0
@@ -49,8 +83,14 @@ class StocktwitsFetcher(MessageFetcher):
 
         created_date_time = parser.parse(twit['created_at'])
 
+        if self.direction is Direction.BACKWARD:
+            if self.marker_cache[ticker] > created_date_time:
+                self.marker_cache[ticker] = created_date_time
+        elif self.direction is Direction.FORWARD:
+            if self.marker_cache[ticker] < created_date_time:
+                self.marker_cache[ticker] = created_date_time
+
         body = twit['body'].lower()
-        body = bytes(body, 'utf-8').decode('utf-8', 'ignore')
 
         all_symbols = list(
             map(lambda x: x['symbol'].lower(), twit['symbols']))

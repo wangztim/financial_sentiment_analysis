@@ -5,7 +5,7 @@ import random
 
 from dateutil import parser
 from subprocess import call
-from classes.fetchers import StocktwitsFetcher
+from classes.fetchers import StocktwitsFetcher, Direction
 from classes.message import Message
 from aiohttp import ClientSession
 import asyncio
@@ -17,10 +17,7 @@ sp_500_tickers = open(os.path.dirname(
     os.path.abspath(__file__)) + "/igm.txt", "r").read().splitlines()
 
 
-FORWARD = "FORWARD"
-BACKWARD = "BACKWARD"
-
-desired_dir = BACKWARD
+desired_dir = Direction.BACKWARD
 fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
 
 
@@ -39,65 +36,61 @@ def initializeCSV(ticker):
     return twits_csv
 
 
-def findStartingId(direction, twits_csv):
+def findStartingId(direction, ticker) -> str:
     marker_datetime, marker_id = None, None
+    ticker_dir = os.path.dirname(
+        os.path.abspath(__file__)) + "/tickers/" + ticker
+    if not os.path.exists(ticker_dir):
+        os.makedirs(ticker_dir)
+    file_path = ticker_dir + '/twits.csv'
+    with open(file_path, 'a+', encoding='utf-8', errors='ignore') as twits_csv:
+        twits_csv.seek(0)
+        reader = csv.reader(twits_csv, delimiter=',',
+                            lineterminator='\n')
 
-    twits_csv.seek(0)
-    reader = csv.reader(twits_csv, delimiter=',',
-                        lineterminator='\n')
+        headers = next(reader)
 
-    headers = next(reader)
+        id_idx = headers.index("id")
+        created_at_idx = headers.index('created_at')
 
-    id_idx = headers.index("id")
-    created_at_idx = headers.index('created_at')
+        try:
+            for row in reader:
+                row_id = row[id_idx]
+                row_datetime = parser.parse(
+                    row[created_at_idx], ignoretz=True)
 
-    try:
-        for row in reader:
-            row_id = row[id_idx]
-            row_datetime = parser.parse(
-                row[created_at_idx], ignoretz=True)
+                if marker_datetime is None and marker_id is None:
+                    marker_datetime, marker_id = row_datetime, row_id
+                elif direction == Direction.FORWARD and row_datetime > marker_datetime:
+                    marker_datetime, marker_id = row_datetime, row_id
+                elif direction == Direction.BACKWARD and row_datetime < marker_datetime:
+                    marker_datetime, marker_id = row_datetime, row_id
+        except Exception as er:
+            print(er)
+            print(f'the row after {row} in {twits_csv.name} is bad')
+            return None
 
-            if marker_datetime is None and marker_id is None:
-                marker_datetime, marker_id = row_datetime, row_id
-            elif direction == FORWARD and row_datetime > marker_datetime:
-                marker_datetime, marker_id = row_datetime, row_id
-            elif direction == BACKWARD and row_datetime < marker_datetime:
-                marker_datetime, marker_id = row_datetime, row_id
-    except Exception as er:
-        print(er)
-        print(f'the row after {row} in {twits_csv.name} is bad')
-        return None
-
-    return marker_id
-
-
-def buildParams(direction, csv):
-    twit_id = findStartingId(direction, csv)
-    params = {}
-    if twit_id is None:
-        return params
-    if direction == BACKWARD:
-        params['max'] = twit_id
-    elif direction == FORWARD:
-        params['since'] = twit_id
-    return params
+        return marker_id
 
 
 async def main():
-    vpn = "Hotspot Shield"
     fetcher = StocktwitsFetcher()
+
+    for ticker in sp_500_tickers:
+        marker_id = findStartingId(desired_dir, ticker)
+        fetcher.setTickerMarker(ticker, marker_id)
 
     while True:
         print("let's go")
         stock_tickers = random.sample(sp_500_tickers, 200)
         csvs = [initializeCSV(ticker) for ticker in stock_tickers]
-        params = [buildParams(desired_dir, csv) for csv in csvs]
+
         async with ClientSession() as session:
             futures = []
             for i in range(len(stock_tickers)):
                 ticker = stock_tickers[i]
                 future = asyncio.ensure_future(
-                    fetcher.fetchMessages(ticker, session, params[i]))
+                    fetcher.fetchMessages(ticker, session))
                 futures.append(future)
 
             # type: Tuple[Message]
@@ -134,7 +127,7 @@ async def main():
             print('restarting VPN process.')
 
             cmd = "protonvpn connect -r"
-            call('echo {} | sudo -S {}'.format(sudo_pw, cmd), shell=True, stdout=os.devnull)
+            call('echo {} | sudo -S {}'.format(sudo_pw, cmd), shell=True)
             print('waiting for VPN to reboot.')
             time.sleep(2)
 
