@@ -81,7 +81,7 @@ class StocktwitsFetcher(MessageFetcher):
         else:
             sentiment_val = 0
 
-        created_date_time = parser.parse(twit['created_at'])
+        created_date_time = parser.parse(twit['created_at'], ignoretz=True)
 
         if self.direction is Direction.BACKWARD:
             if self.marker_cache[ticker] > created_date_time:

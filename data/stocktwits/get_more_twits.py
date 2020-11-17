@@ -70,15 +70,19 @@ def findStartingId(direction, ticker) -> str:
         return marker_id
 
 
+sudo_pw = input("Please enter your sudo password: ")
+
+
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
-    NUM_TICKERS_TO_GET = 200
+    NUM_TICKERS_TO_GET = 1
+
+    print("initializing markers")
 
     for ticker in sp_500_tickers:
         marker_id = findStartingId(desired_dir, ticker)
         fetcher.setTickerMarker(ticker, marker_id)
 
-    sudo_pw = input("Please enter your sudo password: ")
     while True:
         print("let's go")
         stock_tickers = random.sample(sp_500_tickers, NUM_TICKERS_TO_GET)
@@ -104,6 +108,7 @@ async def main():
                 messages = responses[i]
                 csv_io = csvs[i]
                 if not isinstance(messages, list):
+                    print(messages[0])
                     csv_io.close()
                     continue
                 writer = csv.DictWriter(
