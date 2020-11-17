@@ -2,7 +2,6 @@ import time
 import csv
 import os
 import random
-import pathlib
 
 from dateutil import parser
 from subprocess import call
@@ -11,6 +10,8 @@ from classes.message import Message
 from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List
+
+sudo_pw = input("Please enter your sudo password: ")
 
 sp_500_tickers = open(os.path.dirname(
     os.path.abspath(__file__)) + "/igm.txt", "r").read().splitlines()
@@ -26,6 +27,8 @@ fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
 def initializeCSV(ticker):
     ticker_dir = os.path.dirname(
         os.path.abspath(__file__)) + "/tickers/" + ticker
+    if not os.path.exists(ticker_dir):
+        os.makedirs(ticker_dir)
     file_path = ticker_dir + '/twits.csv'
     twits_csv = open(file_path, 'a+', encoding='utf-8', errors='ignore')
     file_empty = os.path.getsize(file_path) == 0
@@ -129,13 +132,11 @@ async def main():
             print(f"{successes} / 200 Succeses!")
 
             print('restarting VPN process.')
-            call(["killall", vpn])
-            time.sleep(2)
-            print("starting " + vpn)
-            call(["open", "-a", vpn])
-            print("waiting some time to let connection get established")
-            time.sleep(16)
 
+            cmd = "protonvpn connect -r"
+            call('echo {} | sudo -S {}'.format(sudo_pw, cmd), shell=True, stdout=os.devnull)
+            print('waiting for VPN to reboot.')
+            time.sleep(2)
 
 if __name__ == "__main__":
     asyncio.run(main())
