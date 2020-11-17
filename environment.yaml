@@ -1,0 +1,15 @@
+name: stocktwits_nlp
+channels:
+  - defaults
+dependencies:
+  - requests
+  - pylint
+  - autopep8
+  - pandas
+  - jupyterlab
+  - python=3.8
+  - pytorch
+  - seaborn
+  - aiohttp
+prefix: /usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp
+
