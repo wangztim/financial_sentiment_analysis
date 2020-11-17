@@ -2,6 +2,7 @@ import csv
 import os
 import random
 
+from datetime import datetime
 from dateutil import parser
 from subprocess import call
 from classes.fetchers import StocktwitsFetcher, Direction
@@ -33,7 +34,7 @@ def initializeCSV(ticker):
     return twits_csv
 
 
-def findStartingId(direction, ticker) -> str:
+def findStartingId(direction, ticker) -> (datetime, str):
     marker_datetime, marker_id = None, None
     ticker_dir = os.path.dirname(
         os.path.abspath(__file__)) + "/tickers/" + ticker
@@ -67,7 +68,7 @@ def findStartingId(direction, ticker) -> str:
             print(f'the row after {row} in {twits_csv.name} is bad')
             return None
 
-        return marker_id
+        return marker_datetime, marker_id
 
 
 sudo_pw = input("Please enter your sudo password: ")
@@ -75,13 +76,13 @@ sudo_pw = input("Please enter your sudo password: ")
 
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
-    NUM_TICKERS_TO_GET = 1
+    NUM_TICKERS_TO_GET = 200
 
     print("initializing markers")
 
     for ticker in sp_500_tickers:
-        marker_id = findStartingId(desired_dir, ticker)
-        fetcher.setTickerMarker(ticker, marker_id)
+        marker_datetime, marker_id = findStartingId(desired_dir, ticker)
+        fetcher.setTickerMarker(ticker, marker_id, marker_datetime)
 
     while True:
         print("let's go")
@@ -90,8 +91,7 @@ async def main():
 
         async with ClientSession() as session:
             futures = []
-            for i in range(len(stock_tickers)):
-                ticker = stock_tickers[i]
+            for ticker in stock_tickers:
                 future = asyncio.ensure_future(
                     fetcher.fetchMessages(ticker, session))
                 futures.append(future)
@@ -108,7 +108,6 @@ async def main():
                 messages = responses[i]
                 csv_io = csvs[i]
                 if not isinstance(messages, list):
-                    print(messages[0])
                     csv_io.close()
                     continue
                 writer = csv.DictWriter(

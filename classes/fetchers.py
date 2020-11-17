@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from classes.message import Message, Sentiment
+from datetime import datetime
 from dateutil import parser
 import requests
 import os
@@ -53,7 +54,7 @@ class StocktwitsFetcher(MessageFetcher):
 
     def __initParams(self, ticker) -> dict:
         params = {}
-        ticker_id = self.marker_cache[ticker]
+        ticker_id = self.marker_cache[ticker]["id"]
         if ticker_id is None:
             return params
         if self.direction == Direction.BACKWARD:
@@ -62,11 +63,10 @@ class StocktwitsFetcher(MessageFetcher):
             params['since'] = ticker_id
         return params
 
-    def getTickerMarker(self, ticker: str) -> str:
-        return self.marker_cache[ticker]
-
-    def setTickerMarker(self, ticker: str, marker: str):
-        self.marker_cache[ticker] = marker
+    def setTickerMarker(self, ticker: str, marker_id: str, marker_datetime: datetime):
+        self.marker_cache[ticker] = {
+            "id": marker_id, 
+            "datetime": marker_datetime}
 
     def processFetched(self, twit: {}, ticker: str) -> Message:
         sentiment = twit.get('entities', {}).get(
@@ -83,13 +83,6 @@ class StocktwitsFetcher(MessageFetcher):
 
         created_date_time = parser.parse(twit['created_at'], ignoretz=True)
 
-        if self.direction is Direction.BACKWARD:
-            if self.marker_cache[ticker] > created_date_time:
-                self.marker_cache[ticker] = created_date_time
-        elif self.direction is Direction.FORWARD:
-            if self.marker_cache[ticker] < created_date_time:
-                self.marker_cache[ticker] = created_date_time
-
         body = twit['body'].lower()
 
         all_symbols = list(
@@ -97,6 +90,15 @@ class StocktwitsFetcher(MessageFetcher):
 
         tickers_in_body = list(filter(
             lambda symbol: symbol in body, all_symbols))
+
+        if self.direction is Direction.BACKWARD:
+            if self.marker_cache[ticker]['datetime'] > created_date_time:
+                self.marker_cache[ticker]['id'] = twit['id']
+                self.marker_cache[ticker]['datetime'] = created_date_time
+        elif self.direction is Direction.FORWARD:
+            if self.marker_cache[ticker]['datetime'] < created_date_time:
+                self.marker_cache[ticker]['id'] = twit['id']
+                self.marker_cache[ticker]['datetime'] = created_date_time
 
         message = Message(body, twit['id'],
                           created_date_time,
