@@ -10,8 +10,6 @@ from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List
 
-sudo_pw = input("Please enter your sudo password: ")
-
 sp_500_tickers = open(os.path.dirname(
     os.path.abspath(__file__)) + "/igm.txt", "r").read().splitlines()
 
@@ -73,13 +71,14 @@ def findStartingId(direction, ticker) -> str:
 
 
 async def main():
-    fetcher = StocktwitsFetcher()
+    fetcher = StocktwitsFetcher(desired_dir)
     NUM_TICKERS_TO_GET = 200
 
     for ticker in sp_500_tickers:
         marker_id = findStartingId(desired_dir, ticker)
         fetcher.setTickerMarker(ticker, marker_id)
 
+    sudo_pw = input("Please enter your sudo password: ")
     while True:
         print("let's go")
         stock_tickers = random.sample(sp_500_tickers, NUM_TICKERS_TO_GET)

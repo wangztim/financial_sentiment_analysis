@@ -43,7 +43,7 @@ class StocktwitsFetcher(MessageFetcher):
             if status_code == 200:
                 json = await res.json()
                 messages = json["messages"]
-                return [self.processMessage(m, ticker) for m in messages]
+                return [self.processFetched(m, ticker) for m in messages]
             elif (status_code == 429 or status_code == 403):
                 raise requests.exceptions.ConnectionError(
                     "Rate limit exhausted.")
@@ -51,7 +51,7 @@ class StocktwitsFetcher(MessageFetcher):
                 raise RuntimeError("API call unsuccessful. Code: " +
                                    str(res.status_code))
 
-    def __initParams(self, ticker):
+    def __initParams(self, ticker) -> dict:
         params = {}
         ticker_id = self.marker_cache[ticker]
         if ticker_id is None:
@@ -62,13 +62,13 @@ class StocktwitsFetcher(MessageFetcher):
             params['since'] = ticker_id
         return params
 
-    def getTickerMarker(self, ticker: str):
+    def getTickerMarker(self, ticker: str) -> str:
         return self.marker_cache[ticker]
 
     def setTickerMarker(self, ticker: str, marker: str):
         self.marker_cache[ticker] = marker
 
-    def processMessage(self, twit: {}, ticker: str) -> Message:
+    def processFetched(self, twit: {}, ticker: str) -> Message:
         sentiment = twit.get('entities', {}).get(
             'sentiment', {})
         sentiment_val = 0
