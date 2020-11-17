@@ -10,6 +10,7 @@ from enum import Enum
 
 
 class Direction(Enum):
+    NONE = "NONE"
     FORWARD = "FORWARD"
     BACKWARD = "BACKWARD"
 
@@ -28,7 +29,7 @@ class StocktwitsFetcher(MessageFetcher):
     direction: Direction
     marker_cache: dict
 
-    def __init__(self, direction):
+    def __init__(self, direction=Direction.NONE):
         self.direction = direction
         self.marker_cache = {}
 
@@ -65,7 +66,7 @@ class StocktwitsFetcher(MessageFetcher):
 
     def setTickerMarker(self, ticker: str, marker_id: str, marker_datetime: datetime):
         self.marker_cache[ticker] = {
-            "id": marker_id, 
+            "id": marker_id,
             "datetime": marker_datetime}
 
     def processFetched(self, twit: {}, ticker: str) -> Message:
