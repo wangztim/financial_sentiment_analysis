@@ -1,5 +1,6 @@
 {
-    "python.linting.pylintEnabled": true,
+    "python.linting.pylintEnabled": false,
     "python.linting.enabled": true,
-    "python.pythonPath": "/usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp/bin/python"
+    "python.pythonPath": "/usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp/bin/python",
+    "python.linting.flake8Enabled": true
 }
