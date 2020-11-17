@@ -1,4 +1,3 @@
-import time
 import csv
 import os
 import random
@@ -85,7 +84,7 @@ def buildParams(direction, csv):
 
 async def main():
     fetcher = StocktwitsFetcher()
-    NUM_TICKERS_TO_GET = 160
+    NUM_TICKERS_TO_GET = 200
 
     while True:
         print("let's go")
