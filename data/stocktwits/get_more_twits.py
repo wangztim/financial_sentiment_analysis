@@ -84,12 +84,12 @@ def buildParams(direction, csv):
 
 
 async def main():
-    vpn = "Hotspot Shield"
     fetcher = StocktwitsFetcher()
+    NUM_TICKERS_TO_GET = 160
 
     while True:
         print("let's go")
-        stock_tickers = random.sample(sp_500_tickers, 200)
+        stock_tickers = random.sample(sp_500_tickers, NUM_TICKERS_TO_GET)
         csvs = [initializeCSV(ticker) for ticker in stock_tickers]
         params = [buildParams(desired_dir, csv) for csv in csvs]
         async with ClientSession() as session:
@@ -129,14 +129,15 @@ async def main():
                 successes += 1
                 csv_io.close()
 
-            print(f"{successes} / 200 Succeses!")
+            print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
             print('restarting VPN process.')
 
-            cmd = "protonvpn connect -r"
-            call('echo {} | sudo -S {}'.format(sudo_pw, cmd), shell=True, stdout=os.devnull)
-            print('waiting for VPN to reboot.')
-            time.sleep(2)
+            cmd1 = "protonvpn d"
+            call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
+
+            cmd2 = "protonvpn c -r"
+            call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
