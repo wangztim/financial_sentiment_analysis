@@ -3,6 +3,7 @@ import os
 import random
 import json
 
+from copy import deepcopy
 from time import sleep
 from datetime import datetime
 from dateutil import parser
@@ -89,7 +90,7 @@ def updateTickerMarkers(ticker, markers):
     ticker_dir = tickers_folder + ticker
     json_path = ticker_dir + '/markers.json'
     with open(json_path, 'w', encoding='utf-8', errors='ignore') as f:
-        out = markers.copy()
+        out = deepcopy(markers)
         out['newest']['datetime'] = out['newest']['datetime'].timestamp()
         out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
         json.dump(out, f)
@@ -106,7 +107,7 @@ def initTickerMarkers(ticker):
     file_empty = os.path.getsize(json_path) == 0
 
     markers = None
-    if file_empty:
+    if True:
         print("creating " + ticker)
         f = open(json_path, 'w', encoding='utf-8', errors='ignore')
         newest_dt, newest_id = findStartingId(
