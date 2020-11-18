@@ -89,11 +89,12 @@ def findStartingId(direction, ticker) -> (datetime, str):
 def updateTickerMarkers(ticker, markers):
     ticker_dir = tickers_folder + ticker
     json_path = ticker_dir + '/markers.json'
-    with open(json_path, 'w', encoding='utf-8', errors='ignore') as f:
+    with open(json_path, 'w', encoding='utf-8', errors='ignore') as m_json:
         out = deepcopy(markers)
         out['newest']['datetime'] = out['newest']['datetime'].timestamp()
         out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
-        json.dump(out, f)
+        json.dump(out, m_json)
+    assert(m_json.closed)
 
 
 def initTickerMarkers(ticker):
@@ -127,13 +128,15 @@ def initTickerMarkers(ticker):
                 }
             }
             updateTickerMarkers(ticker, markers)
+        assert(f.closed)
     else:
-        with open(json_path, 'r', encoding='utf-8', errors='ignore') as f:
-            markers = json.load(f)
+        with open(json_path, 'r', encoding='utf-8', errors='ignore') as r:
+            markers = json.load(r)
             newest_dt = datetime.fromtimestamp(markers['newest']['datetime'])
             oldest_dt = datetime.fromtimestamp(markers['oldest']['datetime'])
             markers['newest']['datetime'] = newest_dt
             markers['oldest']['datetime'] = oldest_dt
+        assert(r.closed)
 
     return markers
 
