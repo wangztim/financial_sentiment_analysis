@@ -158,55 +158,42 @@ async def main():
             responses: Tuple[List[Message], ...] = await asyncio.gather(
                 *futures, return_exceptions=True)
 
-            print("fetched responses")
+        print("fetched responses")
 
-            successes = 0
+        successes = 0
 
-            for i in range(len(responses)):
-                messages = responses[i]
-                csv_io = target_csvs[i]
-                ticker = target_tickers[i]
-                if not isinstance(messages, list):
-                    csv_io.close()
-                    continue
-                writer = csv.DictWriter(
-                    csv_io,
-                    delimiter=',',
-                    lineterminator='\n',
-                    fieldnames=fields)
-                for message in messages:
-                    row = {'id': message.id,
-                           'sentiment': int(message.sentiment),
-                           'body': message.body,
-                           'created_at': message.created_at,
-                           'symbols': message.symbols}
-                    writer.writerow(row)
-                ticker_markers = fetcher.getTickerMarkers(ticker)
-                q = updateTickerMarkers(ticker, ticker_markers)
-                assert(q.closed)
+        for i in range(len(responses)):
+            messages = responses[i]
+            csv_io = target_csvs[i]
+            ticker = target_tickers[i]
+            if not isinstance(messages, list):
                 csv_io.close()
-                successes += 1
+                continue
+            writer = csv.DictWriter(
+                csv_io,
+                delimiter=',',
+                lineterminator='\n',
+                fieldnames=fields)
+            for message in messages:
+                row = {'id': message.id,
+                       'sentiment': int(message.sentiment),
+                       'body': message.body,
+                       'created_at': message.created_at,
+                       'symbols': message.symbols}
+                writer.writerow(row)
+            ticker_markers = fetcher.getTickerMarkers(ticker)
+            q = updateTickerMarkers(ticker, ticker_markers)
+            assert(q.closed)
+            csv_io.close()
+            successes += 1
 
-            proc = Process()
-            open_file_count = 0
+        print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
-            for open_file in proc.open_files():
-                print(proc.open_files())
-                if ".csv" in str(open_file):
-                    open_file_count += 1
-                    print(open_file)                     #
-                else:
-                    continue
-
-            print(open_file_count)
-
-            print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
-
-            print('restarting VPN process.')
-            cmd1 = "protonvpn d"
-            cmd2 = "protonvpn c -r"
-            call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
-            call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
+        print('restarting VPN process.')
+        cmd1 = "protonvpn d"
+        cmd2 = "protonvpn c -r"
+        call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
+        call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
