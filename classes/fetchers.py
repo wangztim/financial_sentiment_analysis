@@ -17,7 +17,7 @@ class Direction(Enum):
 
 class MessageFetcher(ABC):
     @abstractmethod
-    def fetchMessages(self, ticker, params=None, headers=None) -> [Message]:
+    def fetch(self, ticker, params=None, headers=None) -> [Message]:
         pass
 
     @abstractmethod
@@ -27,14 +27,14 @@ class MessageFetcher(ABC):
 
 class StocktwitsFetcher(MessageFetcher):
     direction: Direction
-    marker_cache: dict
+    markers_cache: dict
 
     def __init__(self, direction=Direction.NONE):
         self.direction = direction
-        self.marker_cache = {}
+        self.markers_cache = {}
 
-    async def fetchMessages(self, ticker, session: aiohttp.ClientSession,
-                            params=None, headers=None) -> [Message]:
+    async def fetch(self, ticker, session: aiohttp.ClientSession,
+                    params=None, headers=None) -> [Message]:
         endpoint = f'https://api.stocktwits.com/api/2/streams/symbol/{ticker}.json'
         if params is None:
             params = self.__initParams(ticker)
@@ -55,19 +55,20 @@ class StocktwitsFetcher(MessageFetcher):
 
     def __initParams(self, ticker) -> dict:
         params = {}
-        ticker_id = self.marker_cache[ticker]["id"]
-        if ticker_id is None:
+        markers = self.markers_cache[ticker]
+        if markers is None:
             return params
         if self.direction == Direction.BACKWARD:
-            params['max'] = ticker_id
+            params['max'] = markers["oldest"]["id"]
         elif self.direction == Direction.FORWARD:
-            params['since'] = ticker_id
+            params['since'] = markers["newest"]["id"]
         return params
 
-    def setTickerMarker(self, ticker: str, marker_id: str, marker_datetime: datetime):
-        self.marker_cache[ticker] = {
-            "id": marker_id,
-            "datetime": marker_datetime}
+    def getTickerMarkers(self, ticker: str) -> dict:
+        return self.markers_cache[ticker]
+
+    def setTickerMarkers(self, ticker: str, markers: dict):
+        self.markers_cache[ticker] = markers
 
     def processFetched(self, twit: {}, ticker: str) -> Message:
         sentiment = twit.get('entities', {}).get(
@@ -92,14 +93,16 @@ class StocktwitsFetcher(MessageFetcher):
         tickers_in_body = list(filter(
             lambda symbol: symbol in body, all_symbols))
 
+        markers = self.markers_cache[ticker]
+
         if self.direction is Direction.BACKWARD:
-            if self.marker_cache[ticker]['datetime'] > created_date_time:
-                self.marker_cache[ticker]['id'] = twit['id']
-                self.marker_cache[ticker]['datetime'] = created_date_time
+            if markers["oldest"]['datetime'] > created_date_time:
+                markers["oldest"]['id'] = twit['id']
+                markers["oldest"]['datetime'] = created_date_time
         elif self.direction is Direction.FORWARD:
-            if self.marker_cache[ticker]['datetime'] < created_date_time:
-                self.marker_cache[ticker]['id'] = twit['id']
-                self.marker_cache[ticker]['datetime'] = created_date_time
+            if markers["newest"]['datetime'] < created_date_time:
+                markers["newest"]['id'] = twit['id']
+                markers["newest"]['datetime'] = created_date_time
 
         message = Message(body, twit['id'],
                           created_date_time,
@@ -111,7 +114,7 @@ class StocktwitsFetcher(MessageFetcher):
 
 
 class TwitterFetcher(MessageFetcher):
-    def fetchMessages(self, ticker, params=None, headers=None) -> [Message]:
+    def fetch(self, ticker, params=None, headers=None) -> [Message]:
         endpoint = "https://api.twitter.com/2/tweets/search/recent"
 
         bearer = os.environ['TWITTER_BEARER_TOKEN']
