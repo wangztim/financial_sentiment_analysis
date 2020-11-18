@@ -7,7 +7,6 @@ from copy import deepcopy
 from datetime import datetime
 from dateutil import parser
 from subprocess import call
-from psutil import Process
 
 from classes.fetchers import StocktwitsFetcher, Direction
 from classes.message import Message
@@ -86,8 +85,6 @@ def updateTickerMarkers(ticker, markers):
         out['newest']['datetime'] = out['newest']['datetime'].timestamp()
         out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
         json.dump(out, m_json)
-        m_json.close()
-        return m_json
 
 
 def initTickerMarkers(ticker):
@@ -182,8 +179,7 @@ async def main():
                        'symbols': message.symbols}
                 writer.writerow(row)
             ticker_markers = fetcher.getTickerMarkers(ticker)
-            q = updateTickerMarkers(ticker, ticker_markers)
-            assert(q.closed)
+            updateTickerMarkers(ticker, ticker_markers)
             csv_io.close()
             successes += 1
 
