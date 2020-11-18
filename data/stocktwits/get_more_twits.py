@@ -109,18 +109,18 @@ def initTickerMarkers(ticker):
     if file_empty:
         print("creating " + ticker)
         f = open(json_path, 'w', encoding='utf-8', errors='ignore')
-        newest_datetime, newest_id = findStartingId(
+        newest_dt, newest_id = findStartingId(
             Direction.FORWARD, ticker)
-        oldest_datetime, oldest_id = findStartingId(
+        oldest_dt, oldest_id = findStartingId(
             Direction.BACKWARD, ticker)
         markers = {
             "newest": {
-                "datetime": newest_datetime,
-                "id": newest_id
+                "datetime": newest_dt if newest_dt else datetime.today(),
+                "id": newest_id if newest_id else 0
             },
             "oldest": {
-                "datetime": oldest_datetime,
-                "id": oldest_id
+                "datetime": oldest_dt if oldest_dt else datetime.today(),
+                "id": oldest_id if oldest_id else 0
             }
         }
         updateTickerMarkers(ticker, markers)

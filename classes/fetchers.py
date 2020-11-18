@@ -56,12 +56,12 @@ class StocktwitsFetcher(MessageFetcher):
     def __initParams(self, ticker) -> dict:
         params = {}
         markers = self.markers_cache[ticker]
-        if markers is None:
-            return params
         if self.direction == Direction.BACKWARD:
-            params['max'] = markers["oldest"]["id"]
+            if markers["oldest"] is not None:
+                params['max'] = markers["oldest"]["id"]
         elif self.direction == Direction.FORWARD:
-            params['since'] = markers["newest"]["id"]
+            if markers["newest"] is not None:
+                params['since'] = markers["newest"]["id"]
         return params
 
     def getTickerMarkers(self, ticker: str) -> dict:
@@ -95,14 +95,13 @@ class StocktwitsFetcher(MessageFetcher):
 
         markers = self.markers_cache[ticker]
 
-        if self.direction is Direction.BACKWARD:
-            if markers["oldest"]['datetime'] > created_date_time:
-                markers["oldest"]['id'] = twit['id']
-                markers["oldest"]['datetime'] = created_date_time
-        elif self.direction is Direction.FORWARD:
-            if markers["newest"]['datetime'] < created_date_time:
-                markers["newest"]['id'] = twit['id']
-                markers["newest"]['datetime'] = created_date_time
+        if markers["oldest"]['datetime'] > created_date_time:
+            markers["oldest"]['id'] = twit['id']
+            markers["oldest"]['datetime'] = created_date_time
+
+        if markers["newest"]['datetime'] < created_date_time:
+            markers["newest"]['id'] = twit['id']
+            markers["newest"]['datetime'] = created_date_time
 
         message = Message(body, twit['id'],
                           created_date_time,
