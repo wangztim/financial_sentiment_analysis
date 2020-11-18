@@ -113,13 +113,14 @@ def initTickerMarkers(ticker):
             Direction.FORWARD, ticker)
         oldest_dt, oldest_id = findStartingId(
             Direction.BACKWARD, ticker)
+        now = datetime.today()
         markers = {
             "newest": {
-                "datetime": newest_dt if newest_dt else datetime.today(),
+                "datetime": newest_dt if newest_dt else now,
                 "id": newest_id if newest_id else 0
             },
             "oldest": {
-                "datetime": oldest_dt if oldest_dt else datetime.today(),
+                "datetime": oldest_dt if oldest_dt else now,
                 "id": oldest_id if oldest_id else 0
             }
         }
