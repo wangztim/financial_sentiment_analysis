@@ -1,21 +1,16 @@
 import csv
 import os
 import random
-import time
 
 from datetime import datetime
 from dateutil import parser
-from subprocess import PIPE, Popen, call
+from subprocess import call
 
 from classes.fetchers import StocktwitsFetcher, Direction
 from classes.message import Message
 from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List
-
-from io import BytesIO
-from zipfile import ZipFile
-import requests
 
 sp_500_tickers = open(os.path.dirname(
     os.path.abspath(__file__)) + "/igm.txt", "r").read().splitlines()
@@ -78,20 +73,15 @@ def findStartingId(direction, ticker) -> (datetime, str):
 
 
 sudo_pw = input("Please enter your sudo password: ")
-username = input("Please enter your open vpn username")
-pw = input("please enter your open vpn pw")
 
 
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
-    NUM_TICKERS_TO_GET = 200
+    NUM_TICKERS_TO_GET = 180
 
     print("initializing markers")
 
-    dl = requests.get(
-        "https://my.surfshark.com/vpn/api/v1/server/configurations")
-    zipfile = ZipFile(BytesIO(dl.content))
-    vpn_servers = zipfile.namelist()
+    [initializeCSV(ticker) for ticker in sp_500_tickers]
 
     for ticker in sp_500_tickers:
         marker_datetime, marker_id = findStartingId(desired_dir, ticker)
@@ -141,20 +131,10 @@ async def main():
             print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
             print('restarting VPN process.')
-            cmd1 = "killall openvpn"
+            cmd1 = "protonvpn d"
+            cmd2 = "protonvpn c -r"
             call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
-            vpn_server = random.choice(vpn_servers)
-
-            cmd2 = f"openvpn {vpn_server}"
-
-            p = Popen('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True, stdin=PIPE,
-                      stdout=PIPE, universal_newlines=True)
-
-            newline = os.linesep
-            commands = [username, pw]
-
-            p.communicate(newline.join(commands))
-            time.sleep(8)
+            call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
