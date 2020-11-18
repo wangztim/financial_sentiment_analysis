@@ -191,8 +191,8 @@ async def main():
             open_file_count = 0
 
             for open_file in proc.open_files():
-
-                if ".json" in str(open_file):
+                print(proc.open_files())
+                if ".csv" in str(open_file):
                     open_file_count += 1
                     print(open_file)                     #
                 else:
