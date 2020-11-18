@@ -166,6 +166,7 @@ async def main():
                 csv_io = target_csvs[i]
                 ticker = target_tickers[i]
                 if not isinstance(messages, list):
+                    csv_io.close()
                     continue
                 writer = csv.DictWriter(
                     csv_io,
