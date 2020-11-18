@@ -4,7 +4,6 @@ import random
 import json
 
 from copy import deepcopy
-from time import sleep
 from datetime import datetime
 from dateutil import parser
 from subprocess import call
@@ -15,24 +14,16 @@ from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List
 
-tickers = open(os.path.dirname(
-    os.path.abspath(__file__)) + "/igm.txt", "r").read().splitlines()
+tickers_file = open(os.path.dirname(
+    os.path.abspath(__file__)) + "/igm.txt", "r")
+tickers = tickers_file.read().splitlines()
+tickers_file.close()
 
 tickers_folder = os.path.dirname(
     os.path.abspath(__file__)) + "/tickers/"
 
-
 desired_dir = Direction.BACKWARD
 fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
-
-
-def countdown(t):
-    while t:
-        mins, secs = divmod(t, 60)
-        timer = '{:02d}:{:02d}'.format(mins, secs)
-        print(timer, end="\r")
-        sleep(1)
-        t -= 1
 
 
 def initTickerTwitsCSV(ticker):
@@ -94,7 +85,6 @@ def updateTickerMarkers(ticker, markers):
         out['newest']['datetime'] = out['newest']['datetime'].timestamp()
         out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
         json.dump(out, m_json)
-    assert(m_json.closed)
 
 
 def initTickerMarkers(ticker):
@@ -104,14 +94,13 @@ def initTickerMarkers(ticker):
     json_path = ticker_dir + '/markers.json'
     file_exists = os.path.exists(json_path)
     if not file_exists:
-        t = open(json_path, 'w', encoding='utf-8', errors='ignore')
-        t.close()
+        open(json_path, 'w', encoding='utf-8', errors='ignore').close()
     file_empty = os.path.getsize(json_path) == 0
 
     markers = None
 
     if file_empty:
-        with open(json_path, 'w', encoding='utf-8', errors='ignore') as f:
+        with open(json_path, 'w', encoding='utf-8', errors='ignore') as _:
             newest_dt, newest_id = findStartingId(
                 Direction.FORWARD, ticker)
             oldest_dt, oldest_id = findStartingId(
@@ -128,7 +117,6 @@ def initTickerMarkers(ticker):
                 }
             }
             updateTickerMarkers(ticker, markers)
-        assert(f.closed)
     else:
         with open(json_path, 'r', encoding='utf-8', errors='ignore') as r:
             markers = json.load(r)
@@ -136,7 +124,6 @@ def initTickerMarkers(ticker):
             oldest_dt = datetime.fromtimestamp(markers['oldest']['datetime'])
             markers['newest']['datetime'] = newest_dt
             markers['oldest']['datetime'] = oldest_dt
-        assert(r.closed)
 
     return markers
 
@@ -146,8 +133,7 @@ async def main():
     NUM_TICKERS_TO_GET = 160
     print("initializing markers")
 
-    all_twits_csv = [initTickerTwitsCSV(ticker) for ticker in tickers]
-    all_indices = range(0, len(all_twits_csv))
+    all_indices = range(0, len(tickers))
 
     for ticker in tickers:
         markers = initTickerMarkers(ticker)
@@ -158,7 +144,7 @@ async def main():
     while True:
         print("let's go")
         target_indices = random.sample(all_indices, NUM_TICKERS_TO_GET)
-        target_csvs = [all_twits_csv[i] for i in target_indices]
+        target_csvs = [initTickerTwitsCSV(tickers[i]) for i in target_indices]
         target_tickers = [tickers[i] for i in target_indices]
 
         async with ClientSession() as session:
@@ -193,6 +179,7 @@ async def main():
                     writer.writerow(row)
                 ticker_markers = fetcher.getTickerMarkers(ticker)
                 updateTickerMarkers(ticker, ticker_markers)
+                csv_io.close()
                 successes += 1
 
             print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
@@ -202,8 +189,6 @@ async def main():
             cmd2 = "protonvpn c -r"
             call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
             call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
-            countdown(5)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
