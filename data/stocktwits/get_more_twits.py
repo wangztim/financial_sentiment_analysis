@@ -100,8 +100,13 @@ def initTickerMarkers(ticker):
     if not os.path.exists(ticker_dir):
         os.makedirs(ticker_dir)
     json_path = ticker_dir + '/markers.json'
+    file_exists = os.path.exists(json_path)
+    if not file_exists:
+        open(json_path, 'w', encoding='utf-8', errors='ignore').close()
+    file_empty = os.path.getsize(json_path) == 0
+
     markers = None
-    if not os.path.exists(json_path):
+    if file_empty:
         f = open(json_path, 'w', encoding='utf-8', errors='ignore')
         newest_datetime, newest_id = findStartingId(
             Direction.FORWARD, ticker)
