@@ -107,6 +107,7 @@ def initTickerMarkers(ticker):
 
     markers = None
     if file_empty:
+        print("creating " + ticker)
         f = open(json_path, 'w', encoding='utf-8', errors='ignore')
         newest_datetime, newest_id = findStartingId(
             Direction.FORWARD, ticker)
