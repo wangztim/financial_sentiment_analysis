@@ -103,7 +103,8 @@ def initTickerMarkers(ticker):
     json_path = ticker_dir + '/markers.json'
     file_exists = os.path.exists(json_path)
     if not file_exists:
-        open(json_path, 'w', encoding='utf-8', errors='ignore').close()
+        t = open(json_path, 'w', encoding='utf-8', errors='ignore')
+        t.close()
     file_empty = os.path.getsize(json_path) == 0
 
     markers = None
@@ -142,7 +143,7 @@ def initTickerMarkers(ticker):
 
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
-    NUM_TICKERS_TO_GET = 200
+    NUM_TICKERS_TO_GET = 160
     print("initializing markers")
 
     all_twits_csv = [initTickerTwitsCSV(ticker) for ticker in tickers]
