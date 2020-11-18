@@ -190,6 +190,7 @@ async def main():
             cmd2 = "protonvpn c -r"
             call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
             call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
+            call('ls -l /proc/self/fd/', shell=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
