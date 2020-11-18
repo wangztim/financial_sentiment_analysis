@@ -133,6 +133,7 @@ async def main():
     NUM_TICKERS_TO_GET = 160
     print("initializing markers")
 
+    all_csvs = [initTickerTwitsCSV(ticker) for ticker in tickers]
     all_indices = range(0, len(tickers))
 
     for ticker in tickers:
@@ -144,7 +145,7 @@ async def main():
     while True:
         print("let's go")
         target_indices = random.sample(all_indices, NUM_TICKERS_TO_GET)
-        target_csvs = [initTickerTwitsCSV(tickers[i]) for i in target_indices]
+        target_csvs = [all_csvs[i] for i in target_indices]
         target_tickers = [tickers[i] for i in target_indices]
 
         async with ClientSession() as session:
@@ -164,7 +165,6 @@ async def main():
             csv_io = target_csvs[i]
             ticker = target_tickers[i]
             if not isinstance(messages, list):
-                csv_io.close()
                 continue
             writer = csv.DictWriter(
                 csv_io,
@@ -180,7 +180,6 @@ async def main():
                 writer.writerow(row)
             ticker_markers = fetcher.getTickerMarkers(ticker)
             updateTickerMarkers(ticker, ticker_markers)
-            csv_io.close()
             successes += 1
 
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
