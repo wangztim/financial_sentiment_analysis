@@ -149,6 +149,7 @@ async def main():
         print("let's go")
         target_indices = random.sample(all_indices, NUM_TICKERS_TO_GET)
         target_csvs = [all_twits_csv[i] for i in target_indices]
+        target_tickers = [tickers[i] for i in target_indices]
 
         async with ClientSession() as session:
             futures = [asyncio.ensure_future(
@@ -165,6 +166,7 @@ async def main():
             for i in range(len(responses)):
                 messages = responses[i]
                 csv_io = target_csvs[i]
+                ticker = target_tickers[i]
                 if not isinstance(messages, list):
                     continue
                 writer = csv.DictWriter(
@@ -179,6 +181,8 @@ async def main():
                            'created_at': message.created_at,
                            'symbols': message.symbols}
                     writer.writerow(row)
+                ticker_markers = fetcher.getTickerMarkers(ticker)
+                updateTickerMarkers(ticker, ticker_markers)
                 successes += 1
 
             print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
