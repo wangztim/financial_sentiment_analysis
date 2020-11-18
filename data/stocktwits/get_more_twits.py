@@ -110,33 +110,30 @@ def initTickerMarkers(ticker):
     markers = None
 
     if file_empty:
-        print("creating " + ticker)
-        f = open(json_path, 'w', encoding='utf-8', errors='ignore')
-        newest_dt, newest_id = findStartingId(
-            Direction.FORWARD, ticker)
-        oldest_dt, oldest_id = findStartingId(
-            Direction.BACKWARD, ticker)
-        now = datetime.today()
-        markers = {
-            "newest": {
-                "datetime": newest_dt if newest_dt else now,
-                "id": newest_id if newest_id else 0
-            },
-            "oldest": {
-                "datetime": oldest_dt if oldest_dt else now,
-                "id": oldest_id if oldest_id else 0
+        with open(json_path, 'w', encoding='utf-8', errors='ignore') as f:
+            newest_dt, newest_id = findStartingId(
+                Direction.FORWARD, ticker)
+            oldest_dt, oldest_id = findStartingId(
+                Direction.BACKWARD, ticker)
+            now = datetime.today()
+            markers = {
+                "newest": {
+                    "datetime": newest_dt if newest_dt else now,
+                    "id": newest_id if newest_id else 0
+                },
+                "oldest": {
+                    "datetime": oldest_dt if oldest_dt else now,
+                    "id": oldest_id if oldest_id else 0
+                }
             }
-        }
-        updateTickerMarkers(ticker, markers)
-        f.close()
+            updateTickerMarkers(ticker, markers)
     else:
-        f = open(json_path, 'r', encoding='utf-8', errors='ignore')
-        markers = json.load(f)
-        newest_dt = datetime.fromtimestamp(markers['newest']['datetime'])
-        oldest_dt = datetime.fromtimestamp(markers['oldest']['datetime'])
-        markers['newest']['datetime'] = newest_dt
-        markers['oldest']['datetime'] = oldest_dt
-        f.close()
+        with open(json_path, 'r', encoding='utf-8', errors='ignore') as f:
+            markers = json.load(f)
+            newest_dt = datetime.fromtimestamp(markers['newest']['datetime'])
+            oldest_dt = datetime.fromtimestamp(markers['oldest']['datetime'])
+            markers['newest']['datetime'] = newest_dt
+            markers['oldest']['datetime'] = oldest_dt
 
     return markers
 
