@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import datetime
 from dateutil import parser
 from subprocess import call
+from psutil import Process
 
 from classes.fetchers import StocktwitsFetcher, Direction
 from classes.message import Message
@@ -185,6 +186,19 @@ async def main():
                 assert(q.closed)
                 csv_io.close()
                 successes += 1
+
+            proc = Process()
+            open_file_count = 0
+
+            for open_file in proc.open_files():
+
+                if ".json" in str(open_file):
+                    open_file_count += 1
+                    print(open_file)                     #
+                else:
+                    continue
+
+            print(open_file_count)
 
             print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
