@@ -85,6 +85,7 @@ def updateTickerMarkers(ticker, markers):
         out['newest']['datetime'] = out['newest']['datetime'].timestamp()
         out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
         json.dump(out, m_json)
+        m_json.close()
 
 
 def initTickerMarkers(ticker):
