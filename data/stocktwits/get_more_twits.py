@@ -86,6 +86,7 @@ def updateTickerMarkers(ticker, markers):
         out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
         json.dump(out, m_json)
         m_json.close()
+        return m_json
 
 
 def initTickerMarkers(ticker):
@@ -179,7 +180,8 @@ async def main():
                            'symbols': message.symbols}
                     writer.writerow(row)
                 ticker_markers = fetcher.getTickerMarkers(ticker)
-                updateTickerMarkers(ticker, ticker_markers)
+                q = updateTickerMarkers(ticker, ticker_markers)
+                assert(q.closed)
                 csv_io.close()
                 successes += 1
 
@@ -190,7 +192,6 @@ async def main():
             cmd2 = "protonvpn c -r"
             call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
             call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
-            call('ls -l /proc/self/fd/', shell=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
