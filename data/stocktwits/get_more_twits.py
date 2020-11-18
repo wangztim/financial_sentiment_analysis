@@ -151,8 +151,8 @@ async def main():
         target_tickers = [tickers[i] for i in target_indices]
 
         async with ClientSession() as session:
-            futures = [asyncio.ensure_future(
-                fetcher.fetch(tickers[i], session)) for i in target_indices]
+            futures = [fetcher.fetch(tickers[i], session)
+                       for i in target_indices]
 
             # type: Tuple[Message]
             responses: Tuple[List[Message], ...] = await asyncio.gather(
