@@ -107,7 +107,8 @@ def initTickerMarkers(ticker):
     file_empty = os.path.getsize(json_path) == 0
 
     markers = None
-    if True:
+
+    if file_empty:
         print("creating " + ticker)
         f = open(json_path, 'w', encoding='utf-8', errors='ignore')
         newest_dt, newest_id = findStartingId(
