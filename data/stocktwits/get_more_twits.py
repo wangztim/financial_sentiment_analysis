@@ -14,7 +14,7 @@ from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List
 
-sp_500_tickers = open(os.path.dirname(
+tickers = open(os.path.dirname(
     os.path.abspath(__file__)) + "/igm.txt", "r").read().splitlines()
 
 tickers_folder = os.path.dirname(
@@ -136,9 +136,8 @@ async def main():
     NUM_TICKERS_TO_GET = 200
     print("initializing markers")
 
-    all_twits_csv = [initTickerTwitsCSV(ticker) for ticker in sp_500_tickers]
+    all_twits_csv = [initTickerTwitsCSV(ticker) for ticker in tickers]
     all_indices = range(0, len(all_twits_csv))
-    tickers = sp_500_tickers
 
     for ticker in tickers:
         markers = initTickerMarkers(ticker)
