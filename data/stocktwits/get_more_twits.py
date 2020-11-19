@@ -161,7 +161,7 @@ async def main():
 
         successes = 0
 
-        async for i in range(len(responses)):
+        for i in range(len(responses)):
             messages = responses[i]
             csv_io = target_csvs[i]
             ticker = target_tickers[i]
