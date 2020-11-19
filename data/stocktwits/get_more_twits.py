@@ -165,7 +165,7 @@ async def main():
         target_indices = random.sample(all_indices, NUM_TICKERS_TO_GET)
 
         async with ClientSession() as session:
-            futures = [fetcher.fetch(tickers[i], session)
+            futures = [fetchAndStoreMessages(tickers[i], session)
                        for i in target_indices]
 
             status: Tuple[int] = await asyncio.gather(
