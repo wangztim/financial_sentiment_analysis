@@ -23,21 +23,27 @@ tickers_folder = os.path.dirname(
     os.path.abspath(__file__)) + "/tickers/"
 
 desired_dir = Direction.BACKWARD
-fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
 
 
-def initTickerTwitsCSV(ticker):
+def appendMessagesToCSV(ticker, messages):
+    fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
     ticker_dir = tickers_folder + ticker
     if not os.path.exists(ticker_dir):
         os.makedirs(ticker_dir)
     csv_path = ticker_dir + '/twits.csv'
-    twits_csv = open(csv_path, 'a+', encoding='utf-8', errors='ignore')
     file_empty = os.path.getsize(csv_path) == 0
-    if file_empty:
+    with open(csv_path, 'a+', encoding='utf-8', errors='ignore') as twits_csv:
         writer = csv.DictWriter(
             twits_csv, delimiter=',', lineterminator='\n', fieldnames=fields)
-        writer.writeheader()
-    return twits_csv
+        if file_empty:
+            writer.writeheader()
+        for message in messages:
+            row = {'id': message.id,
+                   'sentiment': int(message.sentiment),
+                   'body': message.body,
+                   'created_at': message.created_at,
+                   'symbols': message.symbols}
+            writer.writerow(row)
 
 
 def findStartingId(direction, ticker) -> (datetime, str):
@@ -129,14 +135,25 @@ def initTickerMarkers(ticker):
     return markers
 
 
+async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher, session):
+    try:
+        messages: List[Message] = await fetcher.fetch(ticker, session)
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, appendMessagesToCSV, ticker, messages)
+        markers = fetcher.getTickerMarkers(ticker)
+        await loop.run_in_executor(None, updateTickerMarkers, ticker, markers)
+        return 1
+    except:
+        return 0
+
+
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
     NUM_TICKERS_TO_GET = 188
 
-    print("initializing markers")
-    all_csvs = [initTickerTwitsCSV(ticker) for ticker in tickers]
     all_indices = range(0, len(tickers))
 
+    print("initializing markers")
     for ticker in tickers:
         markers = initTickerMarkers(ticker)
         fetcher.setTickerMarkers(ticker, markers)
@@ -146,42 +163,17 @@ async def main():
     while True:
         print("let's go")
         target_indices = random.sample(all_indices, NUM_TICKERS_TO_GET)
-        target_csvs = [all_csvs[i] for i in target_indices]
-        target_tickers = [tickers[i] for i in target_indices]
 
         async with ClientSession() as session:
             futures = [fetcher.fetch(tickers[i], session)
                        for i in target_indices]
 
-            # type: Tuple[Message]
-            responses: Tuple[List[Message], ...] = await asyncio.gather(
-                *futures, return_exceptions=True)
+            status: Tuple[int] = await asyncio.gather(
+                *futures)
 
         print("fetched responses")
 
-        successes = 0
-
-        for i in range(len(responses)):
-            messages = responses[i]
-            csv_io = target_csvs[i]
-            ticker = target_tickers[i]
-            if not isinstance(messages, list):
-                continue
-            writer = csv.DictWriter(
-                csv_io,
-                delimiter=',',
-                lineterminator='\n',
-                fieldnames=fields)
-            for message in messages:
-                row = {'id': message.id,
-                       'sentiment': int(message.sentiment),
-                       'body': message.body,
-                       'created_at': message.created_at,
-                       'symbols': message.symbols}
-                writer.writerow(row)
-            ticker_markers = fetcher.getTickerMarkers(ticker)
-            updateTickerMarkers(ticker, ticker_markers)
-            successes += 1
+        successes = sum(status)
 
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
