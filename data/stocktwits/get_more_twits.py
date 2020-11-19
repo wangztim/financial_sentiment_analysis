@@ -24,19 +24,28 @@ tickers_folder = os.path.dirname(
 
 desired_dir = Direction.BACKWARD
 
+fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
 
-def appendMessagesToCSV(ticker, messages):
-    fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
+
+def initTickerCSV(ticker):
     ticker_dir = tickers_folder + ticker
     if not os.path.exists(ticker_dir):
         os.makedirs(ticker_dir)
     csv_path = ticker_dir + '/twits.csv'
-    file_empty = os.path.getsize(csv_path) == 0
-    with open(csv_path, 'a+', encoding='utf-8', errors='ignore') as twits_csv:
+    with open(csv_path, 'a+', encoding='utf-8', errors='ignore') as c:
+        file_empty = os.path.getsize(csv_path) == 0
+        if file_empty:
+            writer = csv.DictWriter(
+                c, delimiter=',', lineterminator='\n', fieldnames=fields)
+            writer.writeheader()
+
+
+def appendMessagesToCSV(ticker, messages):
+    ticker_dir = tickers_folder + ticker
+    csv_path = ticker_dir + '/twits.csv'
+    with open(csv_path, 'a', encoding='utf-8', errors='ignore') as twits_csv:
         writer = csv.DictWriter(
             twits_csv, delimiter=',', lineterminator='\n', fieldnames=fields)
-        if file_empty:
-            writer.writeheader()
         for message in messages:
             row = {'id': message.id,
                    'sentiment': int(message.sentiment),
@@ -48,10 +57,7 @@ def appendMessagesToCSV(ticker, messages):
 
 def findStartingId(direction, ticker) -> (datetime, str):
     m_dt, m_id = None, None
-    ticker_dir = os.path.dirname(
-        os.path.abspath(__file__)) + "/tickers/" + ticker
-    if not os.path.exists(ticker_dir):
-        os.makedirs(ticker_dir)
+    ticker_dir = tickers_folder + ticker
     file_path = ticker_dir + '/twits.csv'
     with open(file_path, 'a+', encoding='utf-8', errors='ignore') as twits_csv:
         twits_csv.seek(0)
@@ -68,7 +74,6 @@ def findStartingId(direction, ticker) -> (datetime, str):
                 row_id = row[id_idx]
                 row_datetime = parser.parse(
                     row[created_at_idx], ignoretz=True)
-
                 if m_dt is None and m_id is None:
                     m_dt, m_id = row_datetime, row_id
                 elif direction == Direction.FORWARD and row_datetime > m_dt:
@@ -91,13 +96,10 @@ def updateTickerMarkers(ticker, markers):
         out['newest']['datetime'] = out['newest']['datetime'].timestamp()
         out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
         json.dump(out, m_json)
-        m_json.close()
 
 
 def initTickerMarkers(ticker):
     ticker_dir = tickers_folder + ticker
-    if not os.path.exists(ticker_dir):
-        os.makedirs(ticker_dir)
     json_path = ticker_dir + '/markers.json'
     file_exists = os.path.exists(json_path)
     if not file_exists:
@@ -153,6 +155,9 @@ async def main():
 
     all_indices = range(0, len(tickers))
 
+    for ticker in tickers:
+        initTickerCSV(ticker)
+
     print("initializing markers")
     for ticker in tickers:
         markers = initTickerMarkers(ticker)
@@ -161,7 +166,7 @@ async def main():
     sudo_pw = input("Please enter your sudo password: ")
 
     while True:
-        print("let's go")
+        print("fetching batch")
         target_indices = random.sample(all_indices, NUM_TICKERS_TO_GET)
 
         async with ClientSession() as session:
@@ -171,13 +176,10 @@ async def main():
             status: Tuple[int] = await asyncio.gather(
                 *futures, return_exceptions=True)
 
-        print("fetched responses")
-
         successes = sum(status)
-
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
-        print('restarting VPN process.')
+        print('restarting VPN')
         cmd1 = "protonvpn d"
         cmd2 = "protonvpn c -r"
         call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
