@@ -41,7 +41,7 @@ class StocktwitsFetcher(MessageFetcher):
             params = self.__initParams(ticker)
 
         async with session.get(endpoint, params=params,
-                               headers=headers, timeout=5) as res:
+                               headers=headers, timeout=8) as res:
             status_code = res.status
             if status_code == 200:
                 json = await res.json()
