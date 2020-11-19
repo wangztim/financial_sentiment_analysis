@@ -54,12 +54,6 @@ class StocktwitsFetcher(MessageFetcher):
                 raise RuntimeError("API call unsuccessful. Code: " +
                                    str(res.status_code))
 
-    async def fetch_all(self, tickers, session: aiohttp.ClientSession,
-                        params=None, headers=None) -> [Message]:
-        results = await gather(*[self.fetch(session, t, session,
-                                            params, headers) for t in tickers])
-        return results
-
     def __initParams(self, ticker) -> dict:
         params = {}
         markers = self.markers_cache[ticker]
