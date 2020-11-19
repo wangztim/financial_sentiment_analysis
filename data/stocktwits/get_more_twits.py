@@ -85,6 +85,7 @@ def updateTickerMarkers(ticker, markers):
         out['newest']['datetime'] = out['newest']['datetime'].timestamp()
         out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
         json.dump(out, m_json)
+        m_json.close()
 
 
 def initTickerMarkers(ticker):
@@ -131,8 +132,8 @@ def initTickerMarkers(ticker):
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
     NUM_TICKERS_TO_GET = 160
-    print("initializing markers")
 
+    print("initializing markers")
     all_csvs = [initTickerTwitsCSV(ticker) for ticker in tickers]
     all_indices = range(0, len(tickers))
 
