@@ -158,6 +158,8 @@ def main():
 
         successes = 0
 
+        loop.close()
+
         for i in range(len(responses)):
             messages = responses[i]
             csv_io = target_csvs[i]
