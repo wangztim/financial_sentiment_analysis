@@ -129,7 +129,7 @@ def initTickerMarkers(ticker):
     return markers
 
 
-async def main():
+def main():
     fetcher = StocktwitsFetcher(desired_dir)
     NUM_TICKERS_TO_GET = 160
 
@@ -149,15 +149,12 @@ async def main():
         target_csvs = [all_csvs[i] for i in target_indices]
         target_tickers = [tickers[i] for i in target_indices]
 
-        async with ClientSession() as session:
-            futures = [fetcher.fetch(tickers[i], session)
-                       for i in target_indices]
+        loop = asyncio.get_event_loop()
 
-            # type: Tuple[Message]
-            responses: Tuple[List[Message], ...] = await asyncio.gather(
-                *futures, return_exceptions=True)
-
-        print("fetched responses")
+        with ClientSession(loop=loop) as session:
+            responses = loop.run_until_complete(
+                fetcher.fetch_all(target_tickers, session))
+            print("fetched responses")
 
         successes = 0
 
@@ -190,6 +187,7 @@ async def main():
         cmd2 = "protonvpn c -r"
         call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
         call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
