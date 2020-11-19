@@ -169,7 +169,7 @@ async def main():
                        for i in target_indices]
 
             status: Tuple[int] = await asyncio.gather(
-                *futures)
+                *futures, return_exceptions=True)
 
         print("fetched responses")
 
