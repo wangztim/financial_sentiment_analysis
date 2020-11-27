@@ -149,6 +149,14 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher, session):
         return 0
 
 
+def restartVPN(sudo_pw):
+    print('restarting VPN')
+    cmd1 = "protonvpn d"
+    cmd2 = "protonvpn c -r"
+    call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
+    call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
+
+
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
     NUM_TICKERS_TO_GET = 128
@@ -179,11 +187,9 @@ async def main():
         successes = sum(status)
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
-        print('restarting VPN')
-        cmd1 = "protonvpn d"
-        cmd2 = "protonvpn c -r"
-        call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
-        call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, restartVPN, sudo_pw)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
