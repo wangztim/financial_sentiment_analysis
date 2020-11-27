@@ -151,7 +151,7 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher, session):
 
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
-    NUM_TICKERS_TO_GET = 188
+    NUM_TICKERS_TO_GET = 128
 
     all_indices = range(0, len(tickers))
 
