@@ -5,7 +5,6 @@ from dateutil import parser
 import requests
 import os
 import aiohttp
-from asyncio import gather
 
 from enum import Enum
 
@@ -18,7 +17,8 @@ class Direction(Enum):
 
 class MessageFetcher(ABC):
     @abstractmethod
-    def fetch(self, ticker, params=None, headers=None) -> [Message]:
+    async def fetch(self, ticker, session: aiohttp.ClientSession,
+                    params=None, headers=None) -> [Message]:
         pass
 
     @abstractmethod
@@ -56,7 +56,7 @@ class StocktwitsFetcher(MessageFetcher):
 
     def __initParams(self, ticker) -> dict:
         params = {}
-        markers = self.markers_cache[ticker]
+        markers = self.markers_cache.get(ticker)
         if self.direction == Direction.BACKWARD:
             if markers["oldest"] is not None:
                 params['max'] = markers["oldest"]["id"]
@@ -66,7 +66,7 @@ class StocktwitsFetcher(MessageFetcher):
         return params
 
     def getTickerMarkers(self, ticker: str) -> dict:
-        return self.markers_cache[ticker]
+        return self.markers_cache.get(ticker)
 
     def setTickerMarkers(self, ticker: str, markers: dict):
         assert isinstance(markers['newest']['datetime'], datetime)
@@ -96,15 +96,16 @@ class StocktwitsFetcher(MessageFetcher):
         tickers_in_body = list(filter(
             lambda symbol: symbol in body, all_symbols))
 
-        markers = self.markers_cache[ticker]
+        markers = self.markers_cache.get(ticker)
 
-        if markers["oldest"]['datetime'] > created_date_time:
-            markers["oldest"]['id'] = twit['id']
-            markers["oldest"]['datetime'] = created_date_time
+        if markers:
+            if markers["oldest"]['datetime'] > created_date_time:
+                markers["oldest"]['id'] = twit['id']
+                markers["oldest"]['datetime'] = created_date_time
 
-        if markers["newest"]['datetime'] < created_date_time:
-            markers["newest"]['id'] = twit['id']
-            markers["newest"]['datetime'] = created_date_time
+            if markers["newest"]['datetime'] < created_date_time:
+                markers["newest"]['id'] = twit['id']
+                markers["newest"]['datetime'] = created_date_time
 
         message = Message(body, twit['id'],
                           created_date_time,
@@ -116,35 +117,41 @@ class StocktwitsFetcher(MessageFetcher):
 
 
 class TwitterFetcher(MessageFetcher):
-    def fetch(self, ticker, params=None, headers=None) -> [Message]:
+    async def fetch(self, ticker, session: aiohttp.ClientSession,
+                    params=None, headers=None) -> [Message]:
         endpoint = "https://api.twitter.com/2/tweets/search/recent"
 
         bearer = os.environ['TWITTER_BEARER_TOKEN']
+        default_headers = {'Authorization': 'Bearer {}'.format(bearer)}
+        default_params = {"query": '"${}"'.format(ticker),
+                          "max_results": 100,
+                          "tweet.fields": "lang,created_at,public_metrics"}
 
-        if not headers:
-            headers = {'Authorization': 'Bearer {}'.format(bearer)}
+        if headers:
+            default_headers.update(headers)
 
-        if not params:
-            params = {"query": '"${}"'.format(ticker),
-                      "max_results": 100,
-                      "tweet.fields": "lang,created_at,public_metrics"}
+        if params:
+            default_params.update(params)
 
-        res = requests.get(endpoint, headers=headers,
-                           timeout=5, params=params)
-
-        if res.status_code == 200:
-            data = res.json()['data']
-            filtered_data = [self.processFetched(d) for d in data if (d['lang']
-                                                                      == "en" and "$" in d['text'])]
-            return filtered_data
-        else:
-            raise RuntimeError("API call unsuccessful. Code: " +
-                               str(res.status_code))
+        async with session.get(endpoint, params=default_params,
+                               headers=default_headers, timeout=8) as res:
+            status_code = res.status
+            if status_code == 200:
+                j = await res.json()
+                data = j['data']
+                filtered_data = [self.processFetched(d) for d in data
+                                 if (d['lang'] == "en"
+                                     and "$" in d['text'])]
+                return filtered_data
+            else:
+                raise RuntimeError("API call unsuccessful. Code: " +
+                                   str(status_code))
 
     def processFetched(self, tweet: {}) -> Message:
         likes = tweet.get('public_metrics', {}).get('like_count')
         created_date_time = parser.parse(tweet['created_at'])
 
         message = Message(tweet['text'], tweet['id'],
-                          created_date_time, None, None, likes)
+                          created_date_time, None,
+                          Sentiment(-69), likes)
         return message
