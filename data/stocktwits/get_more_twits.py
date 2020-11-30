@@ -145,7 +145,7 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher, session):
         markers = fetcher.getTickerMarkers(ticker)
         await loop.run_in_executor(None, updateTickerMarkers, ticker, markers)
         return 1
-    except:
+    except:  # noqa
         return 0
 
 
