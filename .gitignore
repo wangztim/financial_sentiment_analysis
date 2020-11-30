@@ -1,6 +1,7 @@
 notes.md
 tokenizer/articles
 data/stocktwits/*/
+data.zip
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,vscode,jupyternotebooks
