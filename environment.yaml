@@ -17,4 +17,5 @@ dependencies:
   - flake8
   - yapf
   - transformers
+  - seaborn
 prefix: /usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp

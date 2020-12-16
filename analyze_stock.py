@@ -5,14 +5,15 @@ from typing import Tuple, List
 from collections import Counter
 import matplotlib.pyplot as plt
 from classes.fetchers import (TwitterFetcher, StocktwitsFetcher, Message,
-                              MessageFetcher)
+                              MessageFetcher, RedditFetcher)
 
 
 async def fetchTwits(ticker, sources=["stocktwits", "twitter"]):
     st_fetcher = StocktwitsFetcher()
     tw_fetcher = TwitterFetcher()
+    re_fetcher = RedditFetcher()
 
-    fetchers: List[MessageFetcher] = [st_fetcher, tw_fetcher]
+    fetchers: List[MessageFetcher] = [st_fetcher, tw_fetcher, re_fetcher]
 
     async with ClientSession() as session:
         futures = []
@@ -49,5 +50,4 @@ async def main(ticker):
 
 if __name__ == "__main__":
     ticker = sys.argv[1]
-
     asyncio.run(main(ticker))

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from classes.message import Message, Sentiment
 from datetime import datetime
 from dateutil import parser
+from datetime import datetime
 import requests
 import os
 import aiohttp
@@ -175,28 +176,30 @@ class RedditFetcher(MessageFetcher):
     endpoint = "http://www.reddit.com/"
 
     # Authentication is not necessary!
-    def __init__(self):
-        client_id = os.environ['REDDIT_CLIENT_ID']
-        client_secret = os.environ['REDDIT_CLIENT_SECRET']
-        username = os.environ['REDDIT_USERNAME']
-        password = os.environ['REDDIT_PASSWORD']
+    def __init__(self, auth=False):
+        if auth:
+            client_id = os.environ['REDDIT_CLIENT_ID']
+            client_secret = os.environ['REDDIT_CLIENT_SECRET']
+            username = os.environ['REDDIT_USERNAME']
+            password = os.environ['REDDIT_PASSWORD']
 
-        client_auth = requests.auth.HTTPBasicAuth(client_id, client_secret)
-        post_data = {
-            "grant_type": "password",
-            "username": username,
-            "password": password
-        }
-        headers = {"User-Agent": "Thunderstorm/1.0 (Linux)"}
-        response = requests.post("https://www.reddit.com/api/v1/access_token",
-                                 auth=client_auth,
-                                 data=post_data,
-                                 headers=headers)
-        if response.status_code == 200:
-            self.access_token = response.json()["access_token"]
-            self.token_type = response.json()["token_type"]
-        else:
-            raise RuntimeError("Unable to authenticate with reddit.")
+            client_auth = requests.auth.HTTPBasicAuth(client_id, client_secret)
+            post_data = {
+                "grant_type": "password",
+                "username": username,
+                "password": password
+            }
+            headers = {"User-Agent": "Thunderstorm/1.0 (Linux)"}
+            response = requests.post(
+                "https://www.reddit.com/api/v1/access_token",
+                auth=client_auth,
+                data=post_data,
+                headers=headers)
+            if response.status_code == 200:
+                self.access_token = response.json()["access_token"]
+                self.token_type = response.json()["token_type"]
+            else:
+                raise RuntimeError("Unable to authenticate with reddit.")
 
     async def fetch(self,
                     ticker,
@@ -210,9 +213,10 @@ class RedditFetcher(MessageFetcher):
 
         default_params = {
             "q": '{}'.format(ticker),
-            "limit": 1,
+            "limit": 5,
             "t": 'day',
-            "sort": "hot"
+            "sort": "new",
+            "restrict_sr": "true",
         }
 
         async def get_fn(sr):
@@ -223,7 +227,10 @@ class RedditFetcher(MessageFetcher):
                 status_code = res.status
                 if status_code == 200:
                     j = await res.json()
-                    return j
+                    return [
+                        self.processFetched(child["data"])
+                        for child in j["data"]["children"]
+                    ]
                 else:
                     raise RuntimeError("API call unsuccessful. Code: " +
                                        str(status_code))
@@ -232,8 +239,14 @@ class RedditFetcher(MessageFetcher):
         operations = [get_fn(sr) for sr in self.subreddits]
         status: Tuple[int] = await asyncio.gather(*operations,
                                                   return_exceptions=True)
+        return [
+            item for sublist in status for item in sublist
+            if sublist is not Exception
+        ]
 
-        return status
-
-    def processFetched(self, tweet: {}) -> Message:
-        raise NotImplementedError
+    def processFetched(self, post: {}) -> Message:
+        full_text = post.get("title", "") + ": " + post.get("selftext", "")
+        return Message(full_text, post["name"],
+                       datetime.fromtimestamp(post["created_utc"]), None,
+                       Sentiment(-69), post["ups"] - post["downs"],
+                       post["num_comments"])

@@ -18,3 +18,4 @@ class Message:
     symbols: [str]
     sentiment: Sentiment = Sentiment.UNDEFINED
     likes: int = 0
+    replies: int = 0
