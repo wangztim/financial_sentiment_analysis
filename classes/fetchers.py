@@ -5,6 +5,8 @@ from dateutil import parser
 import requests
 import os
 import aiohttp
+import asyncio
+from typing import Tuple
 
 from enum import Enum
 
@@ -17,8 +19,11 @@ class Direction(Enum):
 
 class MessageFetcher(ABC):
     @abstractmethod
-    async def fetch(self, ticker, session: aiohttp.ClientSession,
-                    params=None, headers=None) -> [Message]:
+    async def fetch(self,
+                    ticker,
+                    session: aiohttp.ClientSession,
+                    params=None,
+                    headers=None) -> [Message]:
         pass
 
     @abstractmethod
@@ -34,14 +39,19 @@ class StocktwitsFetcher(MessageFetcher):
         self.direction = direction
         self.markers_cache = {}
 
-    async def fetch(self, ticker, session: aiohttp.ClientSession,
-                    params=None, headers=None) -> [Message]:
+    async def fetch(self,
+                    ticker,
+                    session: aiohttp.ClientSession,
+                    params=None,
+                    headers=None) -> [Message]:
         endpoint = f'https://api.stocktwits.com/api/2/streams/symbol/{ticker}.json'
         if params is None:
             params = self.__initParams(ticker)
 
-        async with session.get(endpoint, params=params,
-                               headers=headers, timeout=8) as res:
+        async with session.get(endpoint,
+                               params=params,
+                               headers=headers,
+                               timeout=8) as res:
             status_code = res.status
             if status_code == 200:
                 json = await res.json()
@@ -74,8 +84,7 @@ class StocktwitsFetcher(MessageFetcher):
         self.markers_cache[ticker] = markers
 
     def processFetched(self, twit: {}, ticker: str) -> Message:
-        sentiment = twit.get('entities', {}).get(
-            'sentiment', {})
+        sentiment = twit.get('entities', {}).get('sentiment', {})
         sentiment_val = 0
         if sentiment is None:
             sentiment_val = -69
@@ -90,11 +99,10 @@ class StocktwitsFetcher(MessageFetcher):
 
         body = twit['body'].lower()
 
-        all_symbols = list(
-            map(lambda x: x['symbol'].lower(), twit['symbols']))
+        all_symbols = list(map(lambda x: x['symbol'].lower(), twit['symbols']))
 
-        tickers_in_body = list(filter(
-            lambda symbol: symbol in body, all_symbols))
+        tickers_in_body = list(
+            filter(lambda symbol: symbol in body, all_symbols))
 
         markers = self.markers_cache.get(ticker)
 
@@ -107,9 +115,7 @@ class StocktwitsFetcher(MessageFetcher):
                 markers["newest"]['id'] = twit['id']
                 markers["newest"]['datetime'] = created_date_time
 
-        message = Message(body, twit['id'],
-                          created_date_time,
-                          tickers_in_body,
+        message = Message(body, twit['id'], created_date_time, tickers_in_body,
                           Sentiment(sentiment_val),
                           twit.get('likes', {}).get('total', 0))
 
@@ -117,15 +123,20 @@ class StocktwitsFetcher(MessageFetcher):
 
 
 class TwitterFetcher(MessageFetcher):
-    async def fetch(self, ticker, session: aiohttp.ClientSession,
-                    params=None, headers=None) -> [Message]:
+    async def fetch(self,
+                    ticker,
+                    session: aiohttp.ClientSession,
+                    params=None,
+                    headers=None) -> [Message]:
         endpoint = "https://api.twitter.com/2/tweets/search/recent"
 
         bearer = os.environ['TWITTER_BEARER_TOKEN']
         default_headers = {'Authorization': 'Bearer {}'.format(bearer)}
-        default_params = {"query": '"${}"'.format(ticker),
-                          "max_results": 100,
-                          "tweet.fields": "lang,created_at,public_metrics"}
+        default_params = {
+            "query": '"${}"'.format(ticker),
+            "max_results": 100,
+            "tweet.fields": "lang,created_at,public_metrics"
+        }
 
         if headers:
             default_headers.update(headers)
@@ -133,15 +144,18 @@ class TwitterFetcher(MessageFetcher):
         if params:
             default_params.update(params)
 
-        async with session.get(endpoint, params=default_params,
-                               headers=default_headers, timeout=8) as res:
+        async with session.get(endpoint,
+                               params=default_params,
+                               headers=default_headers,
+                               timeout=8) as res:
             status_code = res.status
             if status_code == 200:
                 j = await res.json()
                 data = j['data']
-                filtered_data = [self.processFetched(d) for d in data
-                                 if (d['lang'] == "en"
-                                     and "$" in d['text'])]
+                filtered_data = [
+                    self.processFetched(d) for d in data
+                    if (d['lang'] == "en" and "$" in d['text'])
+                ]
                 return filtered_data
             else:
                 raise RuntimeError("API call unsuccessful. Code: " +
@@ -151,7 +165,75 @@ class TwitterFetcher(MessageFetcher):
         likes = tweet.get('public_metrics', {}).get('like_count')
         created_date_time = parser.parse(tweet['created_at'])
 
-        message = Message(tweet['text'], tweet['id'],
-                          created_date_time, None,
+        message = Message(tweet['text'], tweet['id'], created_date_time, None,
                           Sentiment(-69), likes)
         return message
+
+
+class RedditFetcher(MessageFetcher):
+    subreddits = ["r/stocks", "r/wallstreetbets"]
+    endpoint = "http://www.reddit.com/"
+
+    # Authentication is not necessary!
+    def __init__(self):
+        client_id = os.environ['REDDIT_CLIENT_ID']
+        client_secret = os.environ['REDDIT_CLIENT_SECRET']
+        username = os.environ['REDDIT_USERNAME']
+        password = os.environ['REDDIT_PASSWORD']
+
+        client_auth = requests.auth.HTTPBasicAuth(client_id, client_secret)
+        post_data = {
+            "grant_type": "password",
+            "username": username,
+            "password": password
+        }
+        headers = {"User-Agent": "Thunderstorm/1.0 (Linux)"}
+        response = requests.post("https://www.reddit.com/api/v1/access_token",
+                                 auth=client_auth,
+                                 data=post_data,
+                                 headers=headers)
+        if response.status_code == 200:
+            self.access_token = response.json()["access_token"]
+            self.token_type = response.json()["token_type"]
+        else:
+            raise RuntimeError("Unable to authenticate with reddit.")
+
+    async def fetch(self,
+                    ticker,
+                    session: aiohttp.ClientSession,
+                    params=None,
+                    headers=None) -> [Message]:
+
+        default_headers = {
+            # "Authorization": self.token_type + " " + self.access_token
+        }
+
+        default_params = {
+            "q": '{}'.format(ticker),
+            "limit": 1,
+            "t": 'day',
+            "sort": "hot"
+        }
+
+        async def get_fn(sr):
+            async with session.get(self.endpoint + sr + "/search.json",
+                                   params=default_params,
+                                   headers=default_headers,
+                                   timeout=8) as res:
+                status_code = res.status
+                if status_code == 200:
+                    j = await res.json()
+                    return j
+                else:
+                    raise RuntimeError("API call unsuccessful. Code: " +
+                                       str(status_code))
+                    return res
+
+        operations = [get_fn(sr) for sr in self.subreddits]
+        status: Tuple[int] = await asyncio.gather(*operations,
+                                                  return_exceptions=True)
+
+        return status
+
+    def processFetched(self, tweet: {}) -> Message:
+        raise NotImplementedError

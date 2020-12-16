@@ -2,7 +2,7 @@ notes.md
 tokenizer/articles
 data/stocktwits/*/
 data.zip
-all_messages.parquet
+*.parquet
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,vscode,jupyternotebooks

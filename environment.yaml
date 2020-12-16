@@ -3,16 +3,18 @@ channels:
   - defaults
 dependencies:
   - requests
-  - autopep8
   - pandas
   - jupyterlab
   - python=3.7
   - pytorch
-  - seaborn
   - aiohttp
   - pip
   - tensorflow-base
   - scikit-learn
   - fastparquet
   - python-snappy
+  - nltk
+  - flake8
+  - yapf
+  - transformers
 prefix: /usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp

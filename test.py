@@ -5,14 +5,16 @@ from typing import Tuple, List
 from collections import Counter
 import matplotlib.pyplot as plt
 from classes.fetchers import (TwitterFetcher, StocktwitsFetcher, Message,
-                              MessageFetcher)
+                              MessageFetcher, RedditFetcher)
+import json
 
 
-async def fetchTwits(ticker, sources=["stocktwits", "twitter"]):
+async def fetchTwits(ticker, sources=["stocktwits", "twitter", "reddit"]):
     st_fetcher = StocktwitsFetcher()
     tw_fetcher = TwitterFetcher()
+    re_fetcher = RedditFetcher()
 
-    fetchers: List[MessageFetcher] = [st_fetcher, tw_fetcher]
+    fetchers: List[MessageFetcher] = [re_fetcher]
 
     async with ClientSession() as session:
         futures = []
@@ -44,7 +46,8 @@ def plotStockSentiment(messages: [Message]):
 
 async def main(ticker):
     messages = await fetchTwits(ticker)
-    plotStockSentiment(messages)
+    print(json.dumps(messages[0]))
+    # plotStockSentiment(messages)
 
 
 if __name__ == "__main__":
