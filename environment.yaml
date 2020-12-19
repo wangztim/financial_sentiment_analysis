@@ -5,11 +5,10 @@ dependencies:
   - requests
   - pandas
   - jupyterlab
-  - python=3.7
+  - python
   - pytorch
   - aiohttp
   - pip
-  - tensorflow-base
   - scikit-learn
   - fastparquet
   - python-snappy
@@ -18,4 +17,5 @@ dependencies:
   - yapf
   - transformers
   - seaborn
+  - tensorflow
 prefix: /usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp
