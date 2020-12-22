@@ -3,6 +3,7 @@ tokenizer/articles
 data/stocktwits/*/
 data.zip
 *.parquet
+*model/model/*
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,vscode,jupyternotebooks

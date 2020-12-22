@@ -12,10 +12,8 @@ dependencies:
   - scikit-learn
   - fastparquet
   - python-snappy
-  - nltk
   - flake8
   - yapf
-  - transformers
   - seaborn
-  - tensorflow
+  - transformers
 prefix: /usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp
