@@ -33,5 +33,3 @@ messages["sentiment"] = messages["sentiment"].replace({-1: 0})
 messages.to_parquet("all_messages.parquet")
 
 zipfile.ZipFile('data.zip', mode='w').write("all_messages.parquet")
-
-os.remove("all_messages.parquet")
