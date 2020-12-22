@@ -14,15 +14,14 @@ from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List
 
-tickers_file = open(os.path.dirname(
-    os.path.abspath(__file__)) + "/igm.txt", "r")
+tickers_file = open(
+    os.path.dirname(os.path.abspath(__file__)) + "/igm.txt", "r")
 tickers = tickers_file.read().splitlines()
 tickers_file.close()
 
-tickers_folder = os.path.dirname(
-    os.path.abspath(__file__)) + "/tickers/"
+tickers_folder = os.path.dirname(os.path.abspath(__file__)) + "/tickers/"
 
-desired_dir = Direction.BACKWARD
+desired_dir = Direction.FORWARD
 
 fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
 
@@ -35,8 +34,10 @@ def initTickerCSV(ticker):
     with open(csv_path, 'a+', encoding='utf-8', errors='ignore') as c:
         file_empty = os.path.getsize(csv_path) == 0
         if file_empty:
-            writer = csv.DictWriter(
-                c, delimiter=',', lineterminator='\n', fieldnames=fields)
+            writer = csv.DictWriter(c,
+                                    delimiter=',',
+                                    lineterminator='\n',
+                                    fieldnames=fields)
             writer.writeheader()
 
 
@@ -44,14 +45,18 @@ def appendMessagesToCSV(ticker, messages):
     ticker_dir = tickers_folder + ticker
     csv_path = ticker_dir + '/twits.csv'
     with open(csv_path, 'a', encoding='utf-8', errors='ignore') as twits_csv:
-        writer = csv.DictWriter(
-            twits_csv, delimiter=',', lineterminator='\n', fieldnames=fields)
+        writer = csv.DictWriter(twits_csv,
+                                delimiter=',',
+                                lineterminator='\n',
+                                fieldnames=fields)
         for message in messages:
-            row = {'id': message.id,
-                   'sentiment': int(message.sentiment),
-                   'body': message.body,
-                   'created_at': message.created_at,
-                   'symbols': message.symbols}
+            row = {
+                'id': message.id,
+                'sentiment': int(message.sentiment),
+                'body': message.body,
+                'created_at': message.created_at,
+                'symbols': message.symbols
+            }
             writer.writerow(row)
 
 
@@ -61,8 +66,7 @@ def findStartingId(direction, ticker) -> (datetime, str):
     file_path = ticker_dir + '/twits.csv'
     with open(file_path, 'a+', encoding='utf-8', errors='ignore') as twits_csv:
         twits_csv.seek(0)
-        reader = csv.reader(twits_csv, delimiter=',',
-                            lineterminator='\n')
+        reader = csv.reader(twits_csv, delimiter=',', lineterminator='\n')
 
         headers = next(reader)
 
@@ -72,8 +76,7 @@ def findStartingId(direction, ticker) -> (datetime, str):
         try:
             for row in reader:
                 row_id = row[id_idx]
-                row_datetime = parser.parse(
-                    row[created_at_idx], ignoretz=True)
+                row_datetime = parser.parse(row[created_at_idx], ignoretz=True)
                 if m_dt is None and m_id is None:
                     m_dt, m_id = row_datetime, row_id
                 elif direction == Direction.FORWARD and row_datetime > m_dt:
@@ -110,10 +113,8 @@ def initTickerMarkers(ticker):
 
     if file_empty:
         with open(json_path, 'w', encoding='utf-8', errors='ignore') as _:
-            newest_dt, newest_id = findStartingId(
-                Direction.FORWARD, ticker)
-            oldest_dt, oldest_id = findStartingId(
-                Direction.BACKWARD, ticker)
+            newest_dt, newest_id = findStartingId(Direction.FORWARD, ticker)
+            oldest_dt, oldest_id = findStartingId(Direction.BACKWARD, ticker)
             now = datetime.today()
             markers = {
                 "newest": {
@@ -159,7 +160,7 @@ def restartVPN(sudo_pw):
 
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
-    NUM_TICKERS_TO_GET = 128
+    NUM_TICKERS_TO_GET = 136
 
     all_indices = range(0, len(tickers))
 
@@ -178,11 +179,13 @@ async def main():
         target_indices = random.sample(all_indices, NUM_TICKERS_TO_GET)
 
         async with ClientSession() as session:
-            futures = [fetchAndStoreMessages(tickers[i], fetcher, session)
-                       for i in target_indices]
+            futures = [
+                fetchAndStoreMessages(tickers[i], fetcher, session)
+                for i in target_indices
+            ]
 
-            status: Tuple[int] = await asyncio.gather(
-                *futures, return_exceptions=True)
+            status: Tuple[int] = await asyncio.gather(*futures,
+                                                      return_exceptions=True)
 
         successes = sum(status)
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
