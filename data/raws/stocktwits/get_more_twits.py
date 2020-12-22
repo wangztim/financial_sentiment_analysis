@@ -160,7 +160,7 @@ def restartVPN(sudo_pw):
 
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
-    NUM_TICKERS_TO_GET = 136
+    NUM_TICKERS_TO_GET = 160
 
     all_indices = range(0, len(tickers))
 
