@@ -15,7 +15,7 @@ import asyncio
 from typing import Tuple, List
 
 tickers_file = open(
-    os.path.dirname(os.path.abspath(__file__)) + "/igm.txt", "r")
+    os.path.dirname(os.path.abspath(__file__)) + "/tickers.txt", "r")
 tickers = tickers_file.read().splitlines()
 tickers_file.close()
 
