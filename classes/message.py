@@ -11,10 +11,11 @@ class Sentiment(IntEnum):
 
 @dataclass()
 class Message:
-    body: str
     id: str
+    body: str
+    author: str
     created_at: datetime
-    symbols: [str]
+    source: str
     sentiment: Sentiment = Sentiment.UNDEFINED
     likes: int = 0
     replies: int = 0
@@ -25,8 +26,9 @@ def to_dict(message: Message) -> dict:
         "body": message.body,
         "id": message.id,
         "created_at": message.created_at,
-        "symbols": message.symbols,
         "sentiment": int(message.sentiment),
         "likes": message.likes,
-        "replies": message.replies
+        "replies": message.replies,
+        "source": message.source,
+        "author": message.author
     }

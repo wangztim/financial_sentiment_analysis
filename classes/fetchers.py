@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from classes.message import Message, Sentiment
 from datetime import datetime
 from dateutil import parser
-from datetime import datetime
 import requests
 import os
 import aiohttp
@@ -100,12 +99,10 @@ class StocktwitsFetcher(MessageFetcher):
 
         body = twit['body'].lower()
 
-        all_symbols = list(map(lambda x: x['symbol'].lower(), twit['symbols']))
-
-        tickers_in_body = list(
-            filter(lambda symbol: symbol in body, all_symbols))
-
         markers = self.markers_cache.get(ticker)
+
+        likes = twit.get('likes', {}).get('total', 0)
+        replies = twit.get('conversation', {}).get('replies', 0)
 
         if markers:
             if markers["oldest"]['datetime'] > created_date_time:
@@ -116,9 +113,9 @@ class StocktwitsFetcher(MessageFetcher):
                 markers["newest"]['id'] = twit['id']
                 markers["newest"]['datetime'] = created_date_time
 
-        message = Message(body, twit['id'], created_date_time, tickers_in_body,
-                          Sentiment(sentiment_val),
-                          twit.get('likes', {}).get('total', 0))
+        message = Message(twit['id'], body, twit["user"]["id"],
+                          created_date_time, "StockTwits",
+                          Sentiment(sentiment_val), likes, replies)
 
         return message
 
@@ -166,8 +163,9 @@ class TwitterFetcher(MessageFetcher):
         likes = tweet.get('public_metrics', {}).get('like_count')
         created_date_time = parser.parse(tweet['created_at'])
 
-        message = Message(tweet['text'], tweet['id'], created_date_time, None,
-                          Sentiment(-69), likes)
+        # TODO: Look up how to get comments num on Twitter
+        message = Message(tweet['id'], tweet['text'], tweet["author_id"],
+                          created_date_time, "Twitter", Sentiment(-69), likes)
         return message
 
 
@@ -246,7 +244,7 @@ class RedditFetcher(MessageFetcher):
 
     def processFetched(self, post: {}) -> Message:
         full_text = post.get("title", "") + ": " + post.get("selftext", "")
-        return Message(full_text, post["name"],
-                       datetime.fromtimestamp(post["created_utc"]), None,
+        return Message(post["name"], full_text, post["author_fullname"],
+                       datetime.fromtimestamp(post["created_utc"]), "Reddit",
                        Sentiment(-69), post["ups"] - post["downs"],
                        post["num_comments"])

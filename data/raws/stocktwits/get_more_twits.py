@@ -9,7 +9,7 @@ from dateutil import parser
 from subprocess import call
 
 from classes.fetchers import StocktwitsFetcher, Direction
-from classes.message import Message
+from classes.message import Message, to_dict
 from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List
@@ -21,9 +21,12 @@ tickers_file.close()
 
 tickers_folder = os.path.dirname(os.path.abspath(__file__)) + "/tickers/"
 
-desired_dir = Direction.FORWARD
+desired_dir = Direction.BACKWARD
 
-fields = ['id', 'body', 'created_at', 'sentiment', 'symbols']
+fields = [
+    'id', 'body', "author", 'created_at', 'sentiment', "source", "likes",
+    "replies"
+]
 
 
 def initTickerCSV(ticker):
@@ -50,13 +53,7 @@ def appendMessagesToCSV(ticker, messages):
                                 lineterminator='\n',
                                 fieldnames=fields)
         for message in messages:
-            row = {
-                'id': message.id,
-                'sentiment': int(message.sentiment),
-                'body': message.body,
-                'created_at': message.created_at,
-                'symbols': message.symbols
-            }
+            row = to_dict(message)
             writer.writerow(row)
 
 
