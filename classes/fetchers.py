@@ -91,8 +91,6 @@ class StocktwitsFetcher(MessageFetcher):
         elif (sentiment.get('basic') == "Bullish"):
             sentiment_val = 1
         elif (sentiment.get('basic') == "Bearish"):
-            sentiment_val = -1
-        else:
             sentiment_val = 0
 
         created_date_time = parser.parse(twit['created_at'], ignoretz=True)
@@ -103,6 +101,7 @@ class StocktwitsFetcher(MessageFetcher):
 
         likes = twit.get('likes', {}).get('total', 0)
         replies = twit.get('conversation', {}).get('replies', 0)
+        user = twit.get("user", {}).get("id", "")
 
         if markers:
             if markers["oldest"]['datetime'] > created_date_time:
@@ -113,7 +112,7 @@ class StocktwitsFetcher(MessageFetcher):
                 markers["newest"]['id'] = twit['id']
                 markers["newest"]['datetime'] = created_date_time
 
-        message = Message(twit['id'], body, twit["user"]["id"],
+        message = Message(twit['id'], body, user,
                           created_date_time, "StockTwits",
                           Sentiment(sentiment_val), likes, replies)
 
