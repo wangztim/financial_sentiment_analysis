@@ -4,9 +4,8 @@ from enum import IntEnum
 
 
 class Sentiment(IntEnum):
-    NEUTRAL = 0
     BULLISH = 1
-    BEARISH = -1
+    BEARISH = 0
     UNDEFINED = -69
 
 
@@ -19,3 +18,15 @@ class Message:
     sentiment: Sentiment = Sentiment.UNDEFINED
     likes: int = 0
     replies: int = 0
+
+
+def to_dict(message: Message) -> dict:
+    return {
+        "body": message.body,
+        "id": message.id,
+        "created_at": message.created_at,
+        "symbols": message.symbols,
+        "sentiment": int(message.sentiment),
+        "likes": message.likes,
+        "replies": message.replies
+    }
