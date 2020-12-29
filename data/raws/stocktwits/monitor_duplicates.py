@@ -3,9 +3,7 @@ import os
 import re
 from glob import glob
 
-WORKING_DIR = '../data/'  #
-ticker_dir = WORKING_DIR + 'stocktwits'
-PATH = ticker_dir
+PATH = "./"
 EXT = "*.csv"
 
 all_csv_files = [
