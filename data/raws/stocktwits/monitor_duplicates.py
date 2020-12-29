@@ -1,20 +1,21 @@
 import pandas as pd
 import os
-import re
 from glob import glob
+import sqlite3 as sql
 
-PATH = "./"
-EXT = "*.csv"
+PATH = os.path.dirname(os.path.abspath(__file__))
+EXT = "*.db"
 
-all_csv_files = [
+all_files = [
     file for path, subdir, files in os.walk(PATH)
     for file in glob(os.path.join(path, EXT))
 ]
 
-parse_csv = lambda file: pd.read_csv(file, parse_dates=['created_at'])
+parse_sql = lambda conn: pd.read_sql(
+    "SELECT * from messages", conn, parse_dates=['created_at'], index_col="id")
 
-messages = ((f, parse_csv(f)) for f in all_csv_files)
-
-for path, m in messages:
+for path in all_files:
+    conn = sql.connect(path)
+    m = parse_sql(conn)
     non_dupes = m.drop_duplicates()
     print(path, len(m) - len(non_dupes))

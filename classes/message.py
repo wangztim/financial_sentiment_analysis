@@ -32,3 +32,9 @@ def to_dict(message: Message) -> dict:
         "source": message.source,
         "author": message.author
     }
+
+
+def to_tuple(message: Message):
+    return (message.id, message.body, message.author, message.created_at,
+            int(message.sentiment), message.source, message.likes,
+            message.replies)
