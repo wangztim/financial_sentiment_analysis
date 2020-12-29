@@ -21,10 +21,6 @@ desired_dir = Direction.BACKWARD
 columns = ('id', 'body', "author", 'created_at', 'sentiment', "source",
            "likes", "replies")
 
-schema = ('text PRIMARY KEY', 'text NOT NULL', 'text NOT NULL',
-          'timestamp NOT NULL', 'integer DEFAULT -69', 'text NOT NULL',
-          'integer DEFAULT 0', 'integer DEFAULT 0')
-
 
 class TickerDBManager:
     connections: Dict[str, sql.Connection] = {}
@@ -34,27 +30,36 @@ class TickerDBManager:
         if not os.path.exists(ticker_dir):
             os.makedirs(ticker_dir)
         db_path = ticker_dir + '/twits.db'
-        conn = sql.connect(db_path)
+        conn = sql.connect(db_path, check_same_thread=False)
         cursor = conn.cursor()
 
-        fields = []
-
-        for i in range(len(columns)):
-            fields.append(columns[i] + " " + schema[i])
-
-        cursor.execute("CREATE table IF NOT EXISTS messages {}".format(
-            tuple(fields)))
+        cursor.execute("""CREATE table IF NOT EXISTS messages (
+            id text PRIMARY KEY,
+            body text NOT NULL,
+            author text NOT NULL,
+            created_at timestamp NOT NULL,
+            sentiment DEFAULT -69,
+            source NOT NULL,
+            likes DEFAULT 0,
+            replies DEFAULT 0
+        );""")
         self.connections[ticker] = conn
 
     def insertMessages(self, ticker, messages):
         conn = self.connections[ticker]
         messages = [to_tuple(m) for m in messages]
-        conn.cursor().executemany("INSERT INTO messages VALUES (?, ?)",
-                                  messages)
+        conn.cursor().executemany(
+            "INSERT OR IGNORE INTO messages VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+            messages)
+        conn.commit()
 
     def getTickerMarkers(self, ticker):
         conn = self.connections[ticker]
         cursor = conn.cursor()
+        count = cursor.execute("SELECT count(*) FROM messages").fetchone()[0]
+        if count <= 1:
+            return None
+
         oldest_row = cursor.execute(
             "SELECT * FROM messages ORDER BY created_at ASC LIMIT 1;"
         ).fetchone()
@@ -69,13 +74,13 @@ class TickerDBManager:
         if oldest_row is not None:
             markers["oldest"] = {
                 "id": oldest_row[id_idx],
-                "created_at": oldest_row[created_at_idx]
+                "datetime": oldest_row[created_at_idx]
             }
 
         if newest_row is not None:
             markers["newest"] = {
                 "id": newest_row[id_idx],
-                "created_at": newest_row[created_at_idx]
+                "datetime": newest_row[created_at_idx]
             }
         return markers
 
@@ -88,7 +93,10 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher,
         await loop.run_in_executor(None, manager.insertMessages, ticker,
                                    messages)
         return 1
-    except Exception as e:  # noqa
+    except sql.Error as er:
+        print(er)
+        return 0
+    except:
         return 0
 
 
@@ -124,7 +132,7 @@ async def main():
 
         async with ClientSession() as session:
             futures = [
-                fetchAndStoreMessages(tickers[i], fetcher, session)
+                fetchAndStoreMessages(tickers[i], fetcher, manager, session)
                 for i in target_indices
             ]
 
@@ -134,8 +142,8 @@ async def main():
         successes = sum(status)
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, restartVPN, sudo_pw)
+        # loop = asyncio.get_running_loop()
+        # await loop.run_in_executor(None, restartVPN, sudo_pw)
 
 
 if __name__ == "__main__":

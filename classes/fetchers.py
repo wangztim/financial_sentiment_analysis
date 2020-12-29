@@ -79,8 +79,12 @@ class StocktwitsFetcher(MessageFetcher):
         return self.markers_cache.get(ticker)
 
     def setTickerMarkers(self, ticker: str, markers: dict):
-        assert isinstance(markers['newest']['datetime'], datetime)
-        assert isinstance(markers['oldest']['datetime'], datetime)
+        if not isinstance(markers['newest']['datetime'], datetime):
+            markers['newest']['datetime'] = parser.parse(
+                markers['newest']['datetime'], ignoretz=True)
+        if not isinstance(markers['oldest']['datetime'], datetime):
+            markers['oldest']['datetime'] = parser.parse(
+                markers['oldest']['datetime'], ignoretz=True)
         self.markers_cache[ticker] = markers
 
     def processFetched(self, twit: {}, ticker: str) -> Message:
