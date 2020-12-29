@@ -1,9 +1,8 @@
 import pandas as pd
 import os
-import re
 from glob import glob
 
-PATH = "./"
+PATH = os.path.dirname(os.path.abspath(__file__))
 EXT = "*.csv"
 
 all_csv_files = [

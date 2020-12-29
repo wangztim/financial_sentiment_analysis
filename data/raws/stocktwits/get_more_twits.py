@@ -1,129 +1,92 @@
-import csv
 import os
 import random
-import json
+import sqlite3 as sql
 
-from copy import deepcopy
-from datetime import datetime
-from dateutil import parser
 from subprocess import call
 
 from classes.fetchers import StocktwitsFetcher, Direction
-from classes.message import Message, to_dict
+from classes.message import Message, to_tuple
 from aiohttp import ClientSession
 import asyncio
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
-tickers_file = open(os.path.dirname(os.path.abspath(__file__)) + "/tickers.txt", "r")
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+tickers_file = open(CURR_DIR + "/tickers.txt", "r")
 tickers = tickers_file.read().splitlines()
 tickers_file.close()
-
-tickers_folder = os.path.dirname(os.path.abspath(__file__)) + "/tickers/"
+tickers_folder = CURR_DIR + "/tickers/"
 
 desired_dir = Direction.BACKWARD
 
-fields = [
-    'id', 'body', "author", 'created_at', 'sentiment', "source", "likes", "replies"
-]
+columns = ('id', 'body', "author", 'created_at', 'sentiment', "source",
+           "likes", "replies")
+
+schema = ('text PRIMARY KEY', 'text NOT NULL', 'text NOT NULL',
+          'timestamp NOT NULL', 'integer DEFAULT -69', 'text NOT NULL',
+          'integer DEFAULT 0', 'integer DEFAULT 0')
 
 
-def initTickerCSV(ticker):
-    ticker_dir = tickers_folder + ticker
-    if not os.path.exists(ticker_dir):
-        os.makedirs(ticker_dir)
-    csv_path = ticker_dir + '/twits.csv'
-    with open(csv_path, 'a+', encoding='utf-8', errors='ignore') as c:
-        file_empty = os.path.getsize(csv_path) == 0
-        if file_empty:
-            writer = csv.DictWriter(c,
-                                    delimiter=',',
-                                    lineterminator='\n',
-                                    fieldnames=fields)
-            writer.writeheader()
+class TickerDBManager:
+    connections: Dict[str, sql.Connection] = {}
 
+    def initTickerDB(self, ticker):
+        ticker_dir = tickers_folder + ticker
+        if not os.path.exists(ticker_dir):
+            os.makedirs(ticker_dir)
+        db_path = ticker_dir + '/twits.db'
+        conn = sql.connect(db_path)
+        cursor = conn.cursor()
 
-def appendMessagesToCSV(ticker, messages):
-    ticker_dir = tickers_folder + ticker
-    csv_path = ticker_dir + '/twits.csv'
-    with open(csv_path, 'a', encoding='utf-8', errors='ignore') as twits_csv:
-        writer = csv.DictWriter(twits_csv,
-                                delimiter=',',
-                                lineterminator='\n',
-                                fieldnames=fields)
-        for message in messages:
-            row = to_dict(message)
-            writer.writerow(row)
+        fields = []
 
+        for i in range(len(columns)):
+            fields.append(columns[i] + " " + schema[i])
 
-def findStartingId(direction, ticker) -> (datetime, str):
-    m_dt, m_id = None, None
-    ticker_dir = tickers_folder + ticker
-    file_path = ticker_dir + '/twits.csv'
-    with open(file_path, 'a+', encoding='utf-8', errors='ignore') as twits_csv:
-        twits_csv.seek(0)
-        reader = csv.reader(twits_csv, delimiter=',', lineterminator='\n')
+        cursor.execute("CREATE table IF NOT EXISTS messages {}".format(
+            tuple(fields)))
+        self.connections[ticker] = conn
 
-        headers = next(reader)
+    def insertMessages(self, ticker, messages):
+        conn = self.connections[ticker]
+        messages = [to_tuple(m) for m in messages]
+        conn.cursor().executemany("INSERT INTO messages VALUES (?, ?)",
+                                  messages)
 
-        id_idx = headers.index("id")
-        created_at_idx = headers.index('created_at')
+    def getTickerMarkers(self, ticker):
+        conn = self.connections[ticker]
+        cursor = conn.cursor()
+        oldest_row = cursor.execute(
+            "SELECT * FROM messages ORDER BY created_at ASC LIMIT 1;"
+        ).fetchone()
+        newest_row = cursor.execute(
+            "SELECT * FROM messages ORDER BY created_at DESC LIMIT 1;"
+        ).fetchone()
 
-        try:
-            for row in reader:
-                row_id = row[id_idx]
-                row_datetime = parser.parse(row[created_at_idx], ignoretz=True)
-                if m_dt is None and m_id is None:
-                    m_dt, m_id = row_datetime, row_id
-                elif direction == Direction.FORWARD and row_datetime > m_dt:
-                    m_dt, m_id = row_datetime, row_id
-                elif direction == Direction.BACKWARD and row_datetime < m_dt:
-                    m_dt, m_id = row_datetime, row_id
-        except Exception as er:
-            print(er)
-            print(f'the row after {row} in {twits_csv.name} is bad')
-            return None
+        id_idx = columns.index("id")
+        created_at_idx = columns.index("created_at")
 
-        return m_dt, m_id
+        markers = {}
+        if oldest_row is not None:
+            markers["oldest"] = {
+                "id": oldest_row[id_idx],
+                "created_at": oldest_row[created_at_idx]
+            }
 
-
-def updateTickerMarkers(ticker, markers):
-    ticker_dir = tickers_folder + ticker
-    json_path = ticker_dir + '/markers.json'
-    with open(json_path, 'w', encoding='utf-8', errors='ignore') as m_json:
-        out = deepcopy(markers)
-        out['newest']['datetime'] = out['newest']['datetime'].timestamp()
-        out['oldest']['datetime'] = out['oldest']['datetime'].timestamp()
-        json.dump(out, m_json)
-
-
-def initTickerMarkers(ticker):
-    ticker_dir = tickers_folder + ticker
-    json_path = ticker_dir + '/markers.json'
-    file_exists = os.path.exists(json_path)
-    if not file_exists:
-        open(json_path, 'w', encoding='utf-8', errors='ignore').close()
-    file_empty = os.path.getsize(json_path) == 0
-
-    markers = None
-
-    if not file_empty:
-        with open(json_path, 'r', encoding='utf-8', errors='ignore') as r:
-            markers = json.load(r)
-            newest_dt = datetime.fromtimestamp(markers['newest']['datetime'])
-            oldest_dt = datetime.fromtimestamp(markers['oldest']['datetime'])
-            markers['newest']['datetime'] = newest_dt
-            markers['oldest']['datetime'] = oldest_dt
-
+        if newest_row is not None:
+            markers["newest"] = {
+                "id": newest_row[id_idx],
+                "created_at": newest_row[created_at_idx]
+            }
         return markers
 
 
-async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher, session):
+async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher,
+                                manager: TickerDBManager, session):
     try:
         messages: List[Message] = await fetcher.fetch(ticker, session)
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, appendMessagesToCSV, ticker, messages)
-        markers = fetcher.getTickerMarkers(ticker)
-        await loop.run_in_executor(None, updateTickerMarkers, ticker, markers)
+        await loop.run_in_executor(None, manager.insertMessages, ticker,
+                                   messages)
         return 1
     except Exception as e:  # noqa
         return 0
@@ -139,16 +102,18 @@ def restartVPN(sudo_pw):
 
 async def main():
     fetcher = StocktwitsFetcher(desired_dir)
-    NUM_TICKERS_TO_GET = min(200, len(tickers))
+    manager = TickerDBManager()
 
     all_indices = range(0, len(tickers))
 
     for ticker in tickers:
-        initTickerCSV(ticker)
+        manager.initTickerDB(ticker)
+
+    NUM_TICKERS_TO_GET = min(200, len(tickers))
 
     print("initializing markers")
     for ticker in tickers:
-        markers = initTickerMarkers(ticker)
+        markers = manager.getTickerMarkers(ticker)
         if markers:
             fetcher.setTickerMarkers(ticker, markers)
     sudo_pw = input("Please enter your sudo password: ")
@@ -163,7 +128,8 @@ async def main():
                 for i in target_indices
             ]
 
-            status: Tuple[int] = await asyncio.gather(*futures, return_exceptions=True)
+            status: Tuple[int] = await asyncio.gather(*futures,
+                                                      return_exceptions=True)
 
         successes = sum(status)
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
