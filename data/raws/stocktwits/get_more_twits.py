@@ -14,8 +14,7 @@ from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List
 
-tickers_file = open(
-    os.path.dirname(os.path.abspath(__file__)) + "/tickers.txt", "r")
+tickers_file = open(os.path.dirname(os.path.abspath(__file__)) + "/tickers.txt", "r")
 tickers = tickers_file.read().splitlines()
 tickers_file.close()
 
@@ -24,8 +23,7 @@ tickers_folder = os.path.dirname(os.path.abspath(__file__)) + "/tickers/"
 desired_dir = Direction.BACKWARD
 
 fields = [
-    'id', 'body', "author", 'created_at', 'sentiment', "source", "likes",
-    "replies"
+    'id', 'body', "author", 'created_at', 'sentiment', "source", "likes", "replies"
 ]
 
 
@@ -108,23 +106,7 @@ def initTickerMarkers(ticker):
 
     markers = None
 
-    if file_empty:
-        with open(json_path, 'w', encoding='utf-8', errors='ignore') as _:
-            newest_dt, newest_id = findStartingId(Direction.FORWARD, ticker)
-            oldest_dt, oldest_id = findStartingId(Direction.BACKWARD, ticker)
-            now = datetime.today()
-            markers = {
-                "newest": {
-                    "datetime": newest_dt if newest_dt else now,
-                    "id": newest_id if newest_id else 0
-                },
-                "oldest": {
-                    "datetime": oldest_dt if oldest_dt else now,
-                    "id": oldest_id if oldest_id else 0
-                }
-            }
-            updateTickerMarkers(ticker, markers)
-    else:
+    if not file_empty:
         with open(json_path, 'r', encoding='utf-8', errors='ignore') as r:
             markers = json.load(r)
             newest_dt = datetime.fromtimestamp(markers['newest']['datetime'])
@@ -132,7 +114,7 @@ def initTickerMarkers(ticker):
             markers['newest']['datetime'] = newest_dt
             markers['oldest']['datetime'] = oldest_dt
 
-    return markers
+        return markers
 
 
 async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher, session):
@@ -143,7 +125,7 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher, session):
         markers = fetcher.getTickerMarkers(ticker)
         await loop.run_in_executor(None, updateTickerMarkers, ticker, markers)
         return 1
-    except:  # noqa
+    except Exception as e:  # noqa
         return 0
 
 
@@ -167,8 +149,8 @@ async def main():
     print("initializing markers")
     for ticker in tickers:
         markers = initTickerMarkers(ticker)
-        fetcher.setTickerMarkers(ticker, markers)
-
+        if markers:
+            fetcher.setTickerMarkers(ticker, markers)
     sudo_pw = input("Please enter your sudo password: ")
 
     while True:
@@ -181,8 +163,7 @@ async def main():
                 for i in target_indices
             ]
 
-            status: Tuple[int] = await asyncio.gather(*futures,
-                                                      return_exceptions=True)
+            status: Tuple[int] = await asyncio.gather(*futures, return_exceptions=True)
 
         successes = sum(status)
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")

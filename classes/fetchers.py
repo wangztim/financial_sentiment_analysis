@@ -45,9 +45,9 @@ class StocktwitsFetcher(MessageFetcher):
                     params=None,
                     headers=None) -> [Message]:
         endpoint = f'https://api.stocktwits.com/api/2/streams/symbol/{ticker}.json'
+
         if params is None:
             params = self.__initParams(ticker)
-
         async with session.get(endpoint, params=params, headers=headers,
                                timeout=8) as res:
             status_code = res.status
@@ -63,14 +63,17 @@ class StocktwitsFetcher(MessageFetcher):
 
     def __initParams(self, ticker) -> dict:
         params = {}
-        markers = self.markers_cache.get(ticker)
-        if self.direction == Direction.BACKWARD:
-            if markers["oldest"] is not None:
-                params['max'] = markers["oldest"]["id"]
-        elif self.direction == Direction.FORWARD:
-            if markers["newest"] is not None:
-                params['since'] = markers["newest"]["id"]
-        return params
+        markers = self.markers_cache.get(ticker, None)
+        if markers is None:
+            return {}
+        else:
+            if self.direction == Direction.BACKWARD:
+                if markers["oldest"] is not None:
+                    params['max'] = markers["oldest"]["id"]
+            elif self.direction == Direction.FORWARD:
+                if markers["newest"] is not None:
+                    params['since'] = markers["newest"]["id"]
+            return params
 
     def getTickerMarkers(self, ticker: str) -> dict:
         return self.markers_cache.get(ticker)
@@ -94,7 +97,18 @@ class StocktwitsFetcher(MessageFetcher):
 
         body = twit['body'].lower()
 
-        markers = self.markers_cache.get(ticker)
+        markers = self.markers_cache.get(ticker, None)
+
+        if markers is None:
+            obj = {}
+            obj["oldest"] = {}
+            obj["oldest"]['id'] = twit['id']
+            obj["oldest"]['datetime'] = created_date_time
+
+            obj["newest"] = {}
+            obj["newest"]['id'] = twit['id']
+            obj["newest"]['datetime'] = created_date_time
+            self.setTickerMarkers(ticker, obj)
 
         likes = twit.get('likes', {}).get('total', 0)
         replies = twit.get('conversation', {}).get('replies', 0)
