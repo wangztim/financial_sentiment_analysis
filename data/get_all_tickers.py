@@ -7,5 +7,3 @@ tickers = set()
 for line in decoded_content.splitlines():
     t = line.split("\t")[0]
     tickers.add(t)
-
-print(len(tickers))

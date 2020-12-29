@@ -48,9 +48,7 @@ class StocktwitsFetcher(MessageFetcher):
         if params is None:
             params = self.__initParams(ticker)
 
-        async with session.get(endpoint,
-                               params=params,
-                               headers=headers,
+        async with session.get(endpoint, params=params, headers=headers,
                                timeout=8) as res:
             status_code = res.status
             if status_code == 200:
@@ -58,8 +56,7 @@ class StocktwitsFetcher(MessageFetcher):
                 messages = json["messages"]
                 return [self.processFetched(m, ticker) for m in messages]
             elif (status_code == 429 or status_code == 403):
-                raise requests.exceptions.ConnectionError(
-                    "Rate limit exhausted.")
+                raise requests.exceptions.ConnectionError("Rate limit exhausted.")
             else:
                 raise RuntimeError("API call unsuccessful. Code: " +
                                    str(res.status_code))
@@ -112,8 +109,7 @@ class StocktwitsFetcher(MessageFetcher):
                 markers["newest"]['id'] = twit['id']
                 markers["newest"]['datetime'] = created_date_time
 
-        message = Message(twit['id'], body, user,
-                          created_date_time, "StockTwits",
+        message = Message(twit['id'], body, user, created_date_time, "StockTwits",
                           Sentiment(sentiment_val), likes, replies)
 
         return message
@@ -155,8 +151,7 @@ class TwitterFetcher(MessageFetcher):
                 ]
                 return filtered_data
             else:
-                raise RuntimeError("API call unsuccessful. Code: " +
-                                   str(status_code))
+                raise RuntimeError("API call unsuccessful. Code: " + str(status_code))
 
     def processFetched(self, tweet: {}) -> Message:
         likes = tweet.get('public_metrics', {}).get('like_count')
@@ -187,11 +182,10 @@ class RedditFetcher(MessageFetcher):
                 "password": password
             }
             headers = {"User-Agent": "Thunderstorm/1.0 (Linux)"}
-            response = requests.post(
-                "https://www.reddit.com/api/v1/access_token",
-                auth=client_auth,
-                data=post_data,
-                headers=headers)
+            response = requests.post("https://www.reddit.com/api/v1/access_token",
+                                     auth=client_auth,
+                                     data=post_data,
+                                     headers=headers)
             if response.status_code == 200:
                 self.access_token = response.json()["access_token"]
                 self.token_type = response.json()["token_type"]
@@ -234,11 +228,9 @@ class RedditFetcher(MessageFetcher):
                     return res
 
         operations = [get_fn(sr) for sr in self.subreddits]
-        status: Tuple[int] = await asyncio.gather(*operations,
-                                                  return_exceptions=True)
+        status: Tuple[int] = await asyncio.gather(*operations, return_exceptions=True)
         return [
-            item for sublist in status for item in sublist
-            if sublist is not Exception
+            item for sublist in status for item in sublist if sublist is not Exception
         ]
 
     def processFetched(self, post: {}) -> Message:
