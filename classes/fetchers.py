@@ -25,7 +25,7 @@ class MessageFetcher(ABC):
         pass
 
     @abstractmethod
-    def processFetched(self, message: {}) -> Message:
+    def convertFetchedToMessage(self, fetched) -> Message:
         pass
 
 
@@ -87,7 +87,7 @@ class StocktwitsFetcher(MessageFetcher):
                 markers['oldest']['datetime'], ignoretz=True)
         self.markers_cache[ticker] = markers
 
-    def processFetched(self, twit: {}, ticker: str) -> Message:
+    def convertFetchedToMessage(self, twit: {}, ticker: str) -> Message:
         sentiment = twit.get('entities', {}).get('sentiment', {})
         sentiment_val = 0
         if sentiment is None:
@@ -165,14 +165,14 @@ class TwitterFetcher(MessageFetcher):
                 j = await res.json()
                 data = j['data']
                 filtered_data = [
-                    self.processFetched(d) for d in data
+                    self.convertFetchedToMessage(d) for d in data
                     if (d['lang'] == "en" and "$" in d['text'])
                 ]
                 return filtered_data
             else:
                 raise RuntimeError("Failure. Code: " + str(status_code))
 
-    def processFetched(self, tweet: {}) -> Message:
+    def convertFetchedToMessage(self, tweet: {}) -> Message:
         likes = tweet.get('public_metrics', {}).get('like_count')
         created_date_time = parser.parse(tweet['created_at'])
 
@@ -211,24 +211,30 @@ class RedditFetcher(MessageFetcher):
                                                  sort="relevance",
                                                  time_filter="day",
                                                  limit=100):
-            messages.append(self.processFetched(submission))
+            messages.append(self.convertFetchedToMessage(submission))
             # TODO Add Functionality to parse comment tree
         return messages
 
-    def processFetched(self, post) -> Message:
+    async def listenToSubreddits(self, processing_fn):
+        subreddit = await self.reddit.subreddit("+".join(self.subreddits))
+        async for submission in subreddit.stream.submissions():
+            message = self.convertFetchedToMessage(submission)
+            processing_fn(message)  # fn to process the message.
+
+    def convertFetchedToMessage(self, post) -> Message:
         if isinstance(post, asyncpraw.models.Submission):
-            return self._processSubmissions(post)
+            return self._convertSubmissions(post)
         elif isinstance(post, asyncpraw.models.Comment):
-            return self._processComments(post)
+            return self._convertComments(post)
         else:
             return None
 
-    def _processSubmissions(self, s: asyncpraw.models.Submission) -> Message:
+    def _convertSubmissions(self, s: asyncpraw.models.Submission) -> Message:
         full_text = s.title + s.selftext
         author_id = s.author.name
         created = datetime.fromtimestamp(s.created_utc)
         return Message(s.id, full_text, author_id, created, "Reddit",
                        Sentiment(-69), s.score, s.num_comments)
 
-    def _processComments(self, comment: asyncpraw.models.Comment) -> Message:
+    def _convertComments(self, comment: asyncpraw.models.Comment) -> Message:
         raise NotImplementedError()
