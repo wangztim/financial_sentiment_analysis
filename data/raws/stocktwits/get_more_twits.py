@@ -93,7 +93,7 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher,
         await loop.run_in_executor(None, manager.insertMessages, ticker,
                                    messages)
         return 1
-    except sql.Error as er:
+    except sql.OperationalError as er:
         print(er)
         return 0
     except:
