@@ -142,8 +142,8 @@ async def main():
         successes = sum(status)
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
 
-        # loop = asyncio.get_running_loop()
-        # await loop.run_in_executor(None, restartVPN, sudo_pw)
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, restartVPN, sudo_pw)
 
 
 if __name__ == "__main__":
