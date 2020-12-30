@@ -9,6 +9,7 @@ from classes.message import Message, to_tuple
 from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List, Dict
+import requests
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 tickers_file = open(CURR_DIR + "/tickers.txt", "r")
@@ -96,7 +97,10 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher,
     except sql.OperationalError as er:
         print(er)
         return 0
-    except:
+    except requests.exceptions.ConnectionError:
+        return 0
+    except Exception as er2:
+        print(er2)
         return 0
 
 
