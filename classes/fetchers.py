@@ -2,11 +2,14 @@ from abc import ABC, abstractmethod
 from classes.message import Message, Sentiment
 from datetime import datetime
 from dateutil import parser
-import requests
 import os
 import aiohttp
 import asyncpraw
 from enum import Enum
+
+
+class RateLimitExceeded(Exception):
+    pass
 
 
 class Direction(Enum):
@@ -58,7 +61,7 @@ class StocktwitsFetcher(MessageFetcher):
                     self.convertFetchedToMessage(m, ticker) for m in messages
                 ]
             elif (status_code == 429 or status_code == 403):
-                raise requests.exceptions.ConnectionError("Rate limited.")
+                raise RateLimitExceeded()
             else:
                 raise RuntimeError("API call unsuccessful. Code: " +
                                    str(res.status_code))
