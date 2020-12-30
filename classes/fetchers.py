@@ -54,7 +54,9 @@ class StocktwitsFetcher(MessageFetcher):
             if status_code == 200:
                 json = await res.json()
                 messages = json["messages"]
-                return [self.processFetched(m, ticker) for m in messages]
+                return [
+                    self.convertFetchedToMessage(m, ticker) for m in messages
+                ]
             elif (status_code == 429 or status_code == 403):
                 raise requests.exceptions.ConnectionError("Rate limited.")
             else:
