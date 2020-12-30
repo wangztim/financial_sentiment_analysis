@@ -105,10 +105,8 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher,
 
 def restartVPN(sudo_pw):
     print('restarting VPN')
-    cmd1 = "protonvpn d"
-    cmd2 = "protonvpn c -r"
-    call('echo {} | sudo -S {}'.format(sudo_pw, cmd1), shell=True)
-    call('echo {} | sudo -S {}'.format(sudo_pw, cmd2), shell=True)
+    cmd = "protonvpn c -r"
+    call('echo {} | sudo -S {}'.format(sudo_pw, cmd), shell=True)
 
 
 async def main():
