@@ -8,7 +8,7 @@ def plotTickerSentiment(ticker):
     print(db_path)
     conn = sql.connect(db_path)
     cursor = conn.cursor()
-    cmd = cursor.execute("""SELECT AVG(sentiment), DATE(created_at)
+    cmd = cursor.execute("""SELECT AVG(sentiment), DATE(created_at), COUNT(*)
                       FROM messages
                       WHERE sentiment != -69
                       GROUP BY DATE(created_at)""")
