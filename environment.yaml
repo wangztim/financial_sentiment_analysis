@@ -14,6 +14,7 @@ dependencies:
   - python-snappy
   - flake8
   - yapf
-  - seaborn
   - transformers
+  - plotly
+  - matplotlib
 prefix: /usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp

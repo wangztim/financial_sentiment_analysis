@@ -1,6 +1,6 @@
 import sqlite3 as sql
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 
 def plotTickerSentiment(ticker):
@@ -12,8 +12,14 @@ def plotTickerSentiment(ticker):
                       WHERE sentiment != -69
                       GROUP BY DATE(created_at)"""
     df = pd.read_sql(cmd, conn, parse_dates=["created_at"])
-    df.plot(x="DATE(created_at)", y="AVG(sentiment)")
-    plt.show()
+    df = df.rename(
+        mapper={
+            "AVG(sentiment)": "sentiment",
+            "DATE(created_at)": "created_at",
+            "COUNT(*)": "count"
+        })
+
+    px.line(df, x="created_at", y="sentiment")
 
 
 plotTickerSentiment("AAPL")
