@@ -1,6 +1,7 @@
 import sqlite3 as sql
 import pandas as pd
 import plotly.express as px
+import sys
 
 # Hourly Query
 """SELECT AVG(sentiment), strftime('%m/%d %H',created_at), COUNT(*)
@@ -8,6 +9,7 @@ import plotly.express as px
                       WHERE sentiment != -69 AND created_at
                       BETWEEN '2020-12-27' and '2020-12-30'
                       GROUP BY strftime('%Y/%m/%d %H',created_at)"""
+
 
 def plotTickerSentiment(ticker):
     db_path = f'data/raws/stocktwits/tickers/{ticker}/twits.db'
@@ -30,4 +32,6 @@ def plotTickerSentiment(ticker):
     fig.show()
 
 
-plotTickerSentiment("AMZN")
+if __name__ == "__main__":
+    ticker = sys.argv[1]
+    plotTickerSentiment(ticker)
