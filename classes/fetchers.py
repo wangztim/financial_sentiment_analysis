@@ -9,7 +9,8 @@ from enum import Enum
 
 
 class RateLimitExceeded(Exception):
-    pass
+    def __str__(self):
+        return "You have exceeded the API's Rate Limit."
 
 
 class Direction(Enum):
@@ -45,7 +46,8 @@ class StocktwitsFetcher(MessageFetcher):
                     session: aiohttp.ClientSession,
                     params=None,
                     headers=None) -> [Message]:
-        endpoint = f'https://api.stocktwits.com/api/2/streams/symbol/{ticker}.json'
+        url = 'https://api.stocktwits.com/api/2/streams/symbol/'
+        endpoint = url + ticker + ".json"
 
         if params is None:
             params = self.__initParams(ticker)
@@ -220,7 +222,7 @@ class RedditFetcher(MessageFetcher):
             # TODO Add Functionality to parse comment tree
         return messages
 
-    async def listenToSubreddits(self, processing_fn):
+    async def listenToNewSubmissions(self, processing_fn):
         subreddit = await self.reddit.subreddit("+".join(self.subreddits))
         async for submission in subreddit.stream.submissions():
             message = self.convertFetchedToMessage(submission)
