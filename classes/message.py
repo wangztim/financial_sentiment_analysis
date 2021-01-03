@@ -6,7 +6,7 @@ from enum import IntEnum
 class Sentiment(IntEnum):
     BULLISH = 1
     BEARISH = 0
-    UNDEFINED = -69
+    UNCERTAIN = -69
 
 
 @dataclass()
@@ -16,7 +16,7 @@ class Message:
     author: str
     created_at: datetime
     source: str
-    sentiment: Sentiment = Sentiment.UNDEFINED
+    sentiment: Sentiment
     likes: int = 0
     replies: int = 0
 

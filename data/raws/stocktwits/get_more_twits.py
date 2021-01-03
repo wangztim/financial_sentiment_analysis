@@ -38,7 +38,7 @@ class TickerDBManager:
             body text NOT NULL,
             author text NOT NULL,
             created_at timestamp NOT NULL,
-            sentiment DEFAULT -69,
+            sentiment,
             source NOT NULL,
             likes DEFAULT 0,
             replies DEFAULT 0
