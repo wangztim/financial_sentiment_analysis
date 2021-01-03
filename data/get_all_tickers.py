@@ -1,9 +1,10 @@
-import requests
+import urllib.request
 
 url = "https://www.sec.gov/include/ticker.txt"
-download = requests.get(url, allow_redirects=True)
-decoded_content = download.content.decode('utf-8')
 tickers = set()
-for line in decoded_content.splitlines():
+file = urllib.request.urlopen(url).read().decode('utf-8')
+
+tickers = set()
+for line in file.splitlines():
     t = line.split("\t")[0]
     tickers.add(t)

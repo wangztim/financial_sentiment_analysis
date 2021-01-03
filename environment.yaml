@@ -2,9 +2,7 @@ name: stocktwits_nlp
 channels:
   - defaults
 dependencies:
-  - requests
   - pandas
-  - jupyterlab
   - python
   - pytorch
   - aiohttp
@@ -14,7 +12,6 @@ dependencies:
   - python-snappy
   - flake8
   - yapf
-  - transformers
   - plotly
   - matplotlib
 prefix: /usr/local/Caskroom/miniconda/base/envs/stocktwits_nlp
