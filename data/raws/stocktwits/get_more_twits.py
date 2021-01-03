@@ -148,7 +148,8 @@ async def main():
                 errors_dict[res] += 1
 
         print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses.")
-        print("Errors:", errors_dict)
+        if successes < NUM_TICKERS_TO_GET:
+            print("Errors:", errors_dict)
 
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, restartVPN, sudo_pw)
