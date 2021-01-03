@@ -27,7 +27,7 @@ for path in all_files:
     cursor.execute("""CREATE INDEX IF NOT EXISTS idx1
     ON messages_new (created_at, sentiment, source);""")
     cursor.execute("INSERT INTO messages_new SELECT * FROM messages;")
-    cursor.execute("DROP TABLE messages")
+    cursor.execute("ALTER TABLE messages RENAME to messages_backup")
     cursor.execute("ALTER TABLE messages_new RENAME to messages")
     cursor.execute("UPDATE messages SET sentiment=NULL WHERE sentiment=-69;")
     test = cursor.execute(
