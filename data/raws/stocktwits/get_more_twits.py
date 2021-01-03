@@ -4,11 +4,12 @@ import sqlite3 as sql
 
 from subprocess import call
 
-from classes.fetchers import StocktwitsFetcher, Direction, RateLimitExceeded
+from classes.fetchers import StocktwitsFetcher, Direction
 from classes.message import Message, to_tuple
 from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List, Dict
+from collections import defaultdict
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 tickers_file = open(CURR_DIR + "/tickers.txt", "r")
@@ -43,6 +44,9 @@ class TickerDBManager:
             likes DEFAULT 0,
             replies DEFAULT 0
         );""")
+        cursor.execute("""CREATE INDEX IF NOT EXISTS idx1
+        ON messages (created_at, sentiment, source);""")
+
         self.connections[ticker] = conn
 
     def insertMessages(self, ticker, messages):
@@ -93,14 +97,8 @@ async def fetchAndStoreMessages(ticker, fetcher: StocktwitsFetcher,
         await loop.run_in_executor(None, manager.insertMessages, ticker,
                                    messages)
         return 1
-    except sql.OperationalError as er:
-        print(er)
-        return 0
-    except RateLimitExceeded:
-        return 0
-    except Exception as er2:
-        print(er2)
-        return 0
+    except Exception as er:
+        return str(er)
 
 
 def restartVPN(sudo_pw):
@@ -140,8 +138,17 @@ async def main():
             status: Tuple[int] = await asyncio.gather(*futures,
                                                       return_exceptions=True)
 
-        successes = sum(status)
-        print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses!")
+        successes = 0
+        errors_dict = defaultdict(int)
+
+        for res in status:
+            if res == 1:
+                successes += res
+            else:
+                errors_dict[res] += 1
+
+        print(f"{successes} / {NUM_TICKERS_TO_GET} Succeses.")
+        print("Errors:", errors_dict)
 
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, restartVPN, sudo_pw)
