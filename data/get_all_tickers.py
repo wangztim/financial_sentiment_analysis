@@ -1,10 +1,23 @@
 import urllib.request
+urls = [
+    "ftp://ftp.nasdaqtrader.com/symboldirectory/nasdaqlisted.txt",
+    "ftp://ftp.nasdaqtrader.com/symboldirectory/otherlisted.txt"
+]
 
-url = "https://www.sec.gov/include/ticker.txt"
 tickers = set()
-file = urllib.request.urlopen(url).read().decode('utf-8')
+for url in urls:
+    file = urllib.request.urlopen(url)
+    res = file.read().decode('utf-8')
 
-tickers = set()
-for line in file.splitlines():
-    t = line.split("\t")[0]
-    tickers.add(t)
+    line_num = 0  # Symbol|Security Name|Market Category|Test Issue|...
+    row_labels = []
+    for line in res.splitlines():
+        line = line.split("|")
+        if line_num == 0:
+            row_labels = line
+            line_num += 1
+        else:
+            symbol_idx = row_labels.index(
+                "Symbol") if "Symbol" in row_labels else row_labels.index(
+                    "ACT Symbol")
+            tickers.add(line[symbol_idx])
