@@ -17,7 +17,7 @@ analyzer = SentimentAnalyzer(
     path=os.path.join(WORKING_DIR, 'sentiment_model/_model/'))
 
 
-async def fetchTwits(ticker, sources=["stocktwits", "twitter"]):
+async def fetchMessages(ticker, sources=["stocktwits", "twitter"]):
     st_fetcher = StocktwitsFetcher()
     tw_fetcher = TwitterFetcher()
     re_fetcher = RedditFetcher()
@@ -71,7 +71,7 @@ def plotStockSentiment(messages: [Message]):
 
 
 async def main(ticker):
-    messages = await fetchTwits(ticker)
+    messages = await fetchMessages(ticker)
     plotStockSentiment(messages)
 
 
