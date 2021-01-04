@@ -4,6 +4,7 @@ data/raws/stocktwits/tickers/*
 data.zip
 *.parquet
 *model/model/*
+*model/_*
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,vscode,jupyternotebooks

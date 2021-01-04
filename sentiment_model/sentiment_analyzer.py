@@ -1,8 +1,9 @@
 from transformers import (DistilBertForSequenceClassification,
                           DistilBertTokenizerFast, DistilBertConfig)
-from classes.message import Sentiment
+from models.message import Sentiment
 from typing import Union, List
 from torch.nn.functional import softmax
+import os
 
 
 class SentimentAnalyzer:
@@ -16,8 +17,13 @@ class SentimentAnalyzer:
         if path:
             self.model = DistilBertForSequenceClassification.from_pretrained(
                 path)
-            self.tokenizer = DistilBertTokenizerFast.from_pretrained(path +
-                                                                     "/model")
+            tokenizer_path = os.path.join(path, "model/")
+            if os.path.exists(tokenizer_path):
+                self.tokenizer = DistilBertTokenizerFast.from_pretrained(
+                    tokenizer_path)
+            else:
+                self.tokenizer = DistilBertTokenizerFast.from_pretrained(
+                    "distilbert-base-uncased")
         elif model_name:
             config = DistilBertConfig.from_pretrained(model_name,
                                                       return_dict=True,
