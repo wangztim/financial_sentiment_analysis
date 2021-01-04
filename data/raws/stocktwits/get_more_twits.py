@@ -4,8 +4,8 @@ import sqlite3 as sql
 
 from subprocess import call
 
-from classes.fetchers import StocktwitsFetcher, Direction
-from classes.message import Message, to_tuple
+from models.fetchers import StocktwitsFetcher, Direction
+from models.message import Message, to_tuple
 from aiohttp import ClientSession
 import asyncio
 from typing import Tuple, List, Dict

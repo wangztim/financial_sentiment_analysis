@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from classes.message import Message, Sentiment
+from models.message import Message, Sentiment
 from datetime import datetime
 from dateutil import parser
 import os

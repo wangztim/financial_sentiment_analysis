@@ -3,7 +3,7 @@ import json
 import os
 import uuid
 
-from classes.message import Sentiment, Message, to_dict
+from models.message import Sentiment, Message, to_dict
 from datetime import date
 
 curr_dir = os.path.dirname(os.path.abspath(__file__))
