@@ -23,6 +23,11 @@ columns = ('id', 'body', "author", 'created_at', 'sentiment', "source",
            "likes", "replies")
 
 
+class NoEntriesInserted(Exception):
+    def __str__(self):
+        return "No entries were inserted into the table!"
+
+
 class TickerDBManager:
     connections: Dict[str, sql.Connection] = {}
 
@@ -52,10 +57,15 @@ class TickerDBManager:
     def insertMessages(self, ticker, messages):
         conn = self.connections[ticker]
         messages = [to_tuple(m) for m in messages]
+        prev = conn.total_changes
         conn.cursor().executemany(
             "INSERT OR IGNORE INTO messages VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
             messages)
         conn.commit()
+        curr = conn.total_changes
+        if curr - prev == 0:
+            print(ticker + " wrote nothing :(")
+            raise NoEntriesInserted()
 
     def getTickerMarkers(self, ticker):
         conn = self.connections[ticker]
@@ -151,8 +161,8 @@ async def main():
         if successes < NUM_TICKERS_TO_GET:
             print("Errors:", errors_dict)
 
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, restartVPN, sudo_pw)
+        # loop = asyncio.get_running_loop()
+        # await loop.run_in_executor(None, restartVPN, sudo_pw)
 
 
 if __name__ == "__main__":
