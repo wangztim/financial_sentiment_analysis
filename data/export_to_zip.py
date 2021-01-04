@@ -1,38 +1,42 @@
 import os
 import pandas as pd
-import re
+import sqlite3 as sql
 from glob import glob
 import zipfile
 
 PATH = os.path.dirname(os.path.abspath(__file__))
-EXT = "*.csv"
 
 all_csv_files = [
     file for path, subdir, files in os.walk(PATH)
-    for file in glob(os.path.join(path, EXT))
+    for file in glob(os.path.join(path, "*.csv"))
 ]
 
 
 def parse_csv(file):
-    return pd.read_csv(file, parse_dates=['created_at'])
+    return pd.read_csv(file, parse_dates=['created_at'], index_col="id")
 
 
-messages = pd.concat((parse_csv(f) for f in all_csv_files),
-                     ignore_index=True,
-                     sort=False)
+csv_messages = pd.concat((parse_csv(f) for f in all_csv_files))
 
-messages.set_index('id', inplace=True)
-messages.index = messages.index.map(str)
-messages = messages[~messages.index.duplicated(keep='first')]
-
-
-def filter_urls(text):
-    return re.sub(r"http\S+", "", str(text))
+all_db_files = [
+    file for path, subdir, files in os.walk(PATH)
+    for file in glob(os.path.join(path, "*.db"))
+]
 
 
-messages['body'] = messages['body'].apply(filter_urls)
+def parse_sql(path):
+    conn = sql.connect(path)
+    return pd.read_sql("SELECT * from messages",
+                       conn,
+                       index_col='id',
+                       parse_dates=['created_at'])
 
-messages["sentiment"] = messages["sentiment"].replace({-1: 0})
-messages.to_parquet("all_messages.parquet")
 
+sql_messages = pd.concat((parse_sql(f) for f in all_db_files))
+all_messages = pd.concat((sql_messages, csv_messages))
+
+all_messages.index = all_messages.index.astype(str)
+all_messages['body'] = all_messages['body'].astype(str)
+
+all_messages.to_parquet("all_messages.parquet")
 zipfile.ZipFile('data.zip', mode='w').write("all_messages.parquet")
