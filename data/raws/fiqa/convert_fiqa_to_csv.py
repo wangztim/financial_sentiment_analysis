@@ -36,7 +36,7 @@ with open(curr_dir + '/posts.json',
         row = {
             'id': uuid.uuid4(),
             'sentiment': avg_sentiment,
-            'body': headline['sentence'].lower(),
+            'body': headline['sentence'],
             'created_at': today,
         }
         writer.writerow(row)

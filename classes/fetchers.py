@@ -105,9 +105,6 @@ class StocktwitsFetcher(MessageFetcher):
             sentiment_val = 0
 
         created_date_time = parser.parse(twit['created_at'], ignoretz=True)
-
-        body = twit['body'].lower()
-
         markers = self.markers_cache.get(ticker, None)
 
         if markers is None:
@@ -134,7 +131,7 @@ class StocktwitsFetcher(MessageFetcher):
                 markers["newest"]['id'] = twit['id']
                 markers["newest"]['datetime'] = created_date_time
 
-        message = Message(twit['id'], body, user,
+        message = Message(twit['id'], twit['body'], user,
                           created_date_time, "StockTwits",
                           Sentiment(sentiment_val), likes, replies)
 
