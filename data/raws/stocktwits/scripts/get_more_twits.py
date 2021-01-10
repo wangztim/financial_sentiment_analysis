@@ -12,10 +12,12 @@ from typing import Tuple, List, Dict
 from collections import defaultdict
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
-tickers_file = open(CURR_DIR + "/tickers.txt", "r")
+PARENT_DIR = os.path.dirname(os.path.abspath(CURR_DIR))
+
+tickers_file = open(PARENT_DIR + "/tickers.txt", "r")
 tickers = tickers_file.read().splitlines()
 tickers_file.close()
-tickers_folder = CURR_DIR + "/tickers/"
+tickers_folder = PARENT_DIR + "/tickers/"
 
 desired_dir = Direction.BACKWARD
 

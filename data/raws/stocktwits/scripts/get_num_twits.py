@@ -2,7 +2,10 @@ import os
 from glob import glob
 import sqlite3 as sql
 
-PATH = os.path.dirname(os.path.abspath(__file__))
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(os.path.abspath(CURR_DIR))
+
+PATH = PARENT_DIR
 EXT = "*.db"
 
 all_files = [
