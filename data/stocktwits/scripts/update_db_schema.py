@@ -40,5 +40,6 @@ for path in all_files:
         "SELECT * from messages WHERE sentiment IS NULL").fetchall()
     if len(before) == len(after):
         count += 1
+    conn.commit()
 
 print(count, len(all_files))

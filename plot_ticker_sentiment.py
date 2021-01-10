@@ -12,7 +12,7 @@ import sys
 
 
 def plotTickerSentiment(ticker):
-    db_path = f'data/raws/stocktwits/tickers/{ticker}/twits.db'
+    db_path = f'data/stocktwits/tickers/{ticker}/twits.db'
     print(db_path)
     conn = sql.connect(db_path)
     cmd = """SELECT AVG(sentiment), DATE(created_at), COUNT(*)

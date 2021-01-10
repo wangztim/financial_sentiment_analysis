@@ -1,6 +1,6 @@
 notes.md
 tokenizer/articles
-data/raws/stocktwits/tickers/*
+data/stocktwits/tickers/*
 data.zip
 *.parquet
 *model/model/*
