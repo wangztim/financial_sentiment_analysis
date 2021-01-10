@@ -131,9 +131,10 @@ class StocktwitsFetcher(MessageFetcher):
                 markers["newest"]['id'] = twit['id']
                 markers["newest"]['datetime'] = created_date_time
 
-        message = Message(twit['id'], twit['body'], user,
-                          created_date_time, "StockTwits",
-                          Sentiment(sentiment_val), likes, replies)
+        message = Message(
+            twit['id'], twit['body'], user, created_date_time, "StockTwits",
+            Sentiment(sentiment_val) if sentiment_val != -69 else None, likes,
+            replies)
 
         return message
 
@@ -182,7 +183,7 @@ class TwitterFetcher(MessageFetcher):
 
         # TODO: Look up how to get comments num on Twitter
         message = Message(tweet['id'], tweet['text'], tweet["author_id"],
-                          created_date_time, "Twitter", Sentiment(-69), likes)
+                          created_date_time, "Twitter", None, likes)
         return message
 
 
@@ -237,8 +238,8 @@ class RedditFetcher(MessageFetcher):
         full_text = s.title + s.selftext
         author_id = s.author.name
         created = datetime.fromtimestamp(s.created_utc)
-        return Message(s.id, full_text, author_id, created, "Reddit",
-                       Sentiment(-69), s.score, s.num_comments)
+        return Message(s.id, full_text, author_id, created, "Reddit", None,
+                       s.score, s.num_comments)
 
     def _convertComments(self, comment: asyncpraw.models.Comment) -> Message:
         raise NotImplementedError()

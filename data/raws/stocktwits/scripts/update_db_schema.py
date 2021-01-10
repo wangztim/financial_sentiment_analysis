@@ -32,10 +32,12 @@ for path in all_files:
     cursor.execute("INSERT INTO messages_new SELECT * FROM messages;")
     cursor.execute("ALTER TABLE messages RENAME to messages_backup")
     cursor.execute("ALTER TABLE messages_new RENAME to messages")
+    before = cursor.execute(
+        "SELECT * from messages WHERE sentiment=-69").fetchall()
     cursor.execute("UPDATE messages SET sentiment=NULL WHERE sentiment=-69;")
-    test = cursor.execute(
-        "SELECT * from messages WHERE sentiment=-69").fetchone()
-    if test:
+    after = cursor.execute(
+        "SELECT * from messages WHERE sentiment IS NULL").fetchall()
+    if len(before) == len(after):
         count += 1
 
 print(count, len(all_files))

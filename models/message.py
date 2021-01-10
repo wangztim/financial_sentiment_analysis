@@ -16,7 +16,7 @@ class Message:
     author: str
     created_at: datetime
     source: str
-    sentiment: Sentiment
+    sentiment: Sentiment = None
     likes: int = 0
     replies: int = 0
 
@@ -26,7 +26,8 @@ def to_dict(message: Message) -> dict:
         "body": message.body,
         "id": message.id,
         "created_at": message.created_at,
-        "sentiment": int(message.sentiment),
+        "sentiment":
+        int(message.sentiment) if message.sentiment is not None else None,
         "likes": message.likes,
         "replies": message.replies,
         "source": message.source,
@@ -36,5 +37,5 @@ def to_dict(message: Message) -> dict:
 
 def to_tuple(message: Message):
     return (message.id, message.body, message.author, message.created_at,
-            int(message.sentiment), message.source, message.likes,
-            message.replies)
+            int(message.sentiment) if message.sentiment is not None else None,
+            message.source, message.likes, message.replies)
